@@ -49,6 +49,8 @@ export function parseTransactions(
             parseCandidate(
                 candidate,
                 dateResult.date,
+                dateResult.confidence,
+                dateResult.warning
             ),
         )
         .filter(

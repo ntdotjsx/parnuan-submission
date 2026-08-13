@@ -80,24 +80,41 @@ export function splitCandidates(text: string): string[] {
 export function parseCandidate(
     candidate: string,
     date: Date,
+    dateConfidence: number,
+    dateWarning?: string,
 ): Transaction | null {
     const match = candidate.match(
         /(.+?)\s+(\d+(?:\.\d+)?)$/,
     )
 
-    if (!match) {
-        return null
-    }
+    if (!match) return null
 
     const description = match[1].trim()
     const amount = Number(match[2])
 
-    if (!description || Number.isNaN(amount)) {
-        return null
-    }
+    if (!description || Number.isNaN(amount) || amount <= 0) return null
 
     // Find the most likely category for the transaction description
     const categoryResult = findCategory(description)
+
+    const warning: string[] = []
+
+    if (categoryResult.warning) {
+        warning.push(categoryResult.warning)
+    }
+
+    if (dateWarning) {
+        warning.push(dateWarning)
+    }
+
+    /*
+     * Category confidence has more weight because
+     * it directly affects transaction classification.
+     */
+    const confidence =
+        categoryResult.confidence * 0.7 +
+        dateConfidence * 0.3
+
 
     return {
         id: createId(),
@@ -105,5 +122,7 @@ export function parseCandidate(
         amount,
         category: categoryResult.category,
         date: date.toISOString(),
+        confidence,
+        warning: warning.length > 0 ? warning : undefined,
     }
 }

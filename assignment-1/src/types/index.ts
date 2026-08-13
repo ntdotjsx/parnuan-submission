@@ -9,7 +9,8 @@ export type Transaction = {
     amount: number
     category: Category | null
     date: string
-    // confidence: number //ความมั่นใจในการจัดหมวดหมู่ของรายการธุรกรรม
+    confidence: number //ความมั่นใจในการจัดหมวดหมู่ของรายการธุรกรรม
+    warning?: string[] //คำเตือนหรือข้อความแจ้งเตือนที่เกี่ยวข้องกับรายการธุรกรรม
 }
 
 export type ExtractDateResult = {

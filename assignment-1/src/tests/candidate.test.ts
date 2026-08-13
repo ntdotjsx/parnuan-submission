@@ -111,14 +111,13 @@ describe('splitCandidates', () => {
 })
 
 describe('parseCandidate', () => {
-    const date = new Date(
-        '2026-08-13T10:30:00.000Z',
-    )
+    const date = new Date('2026-08-13T10:30:00.000Z')
 
     it('should parse a valid transaction candidate', () => {
         const result = parseCandidate(
             'ข้าวมันไก่ 50',
             date,
+            0.9,
         )
 
         expect(result).not.toBeNull()
@@ -137,6 +136,7 @@ describe('parseCandidate', () => {
         const result = parseCandidate(
             'กาแฟ 45.50',
             date,
+            0.9,
         )
 
         expect(result).not.toBeNull()
@@ -151,6 +151,7 @@ describe('parseCandidate', () => {
         const result = parseCandidate(
             'ข้าวมันไก่',
             date,
+            0.9,
         )
 
         expect(result).toBeNull()
@@ -160,6 +161,27 @@ describe('parseCandidate', () => {
         const result = parseCandidate(
             '',
             date,
+            0.9,
+        )
+
+        expect(result).toBeNull()
+    })
+
+    it('should return null when amount is zero', () => {
+        const result = parseCandidate(
+            'บางอย่าง 0',
+            date,
+            0.9,
+        )
+
+        expect(result).toBeNull()
+    })
+
+    it('should return null when amount is negative', () => {
+        const result = parseCandidate(
+            'บางอย่าง -20',
+            date,
+            0.9,
         )
 
         expect(result).toBeNull()
@@ -169,18 +191,69 @@ describe('parseCandidate', () => {
         const first = parseCandidate(
             'ข้าวมันไก่ 50',
             date,
+            0.9,
         )
 
         const second = parseCandidate(
             'ข้าวมันไก่ 50',
             date,
+            0.9,
         )
 
         expect(first).not.toBeNull()
         expect(second).not.toBeNull()
 
-        expect(first!.id).not.toBe(
-            second!.id,
+        expect(first!.id).not.toBe(second!.id)
+    })
+
+    it('should weight category confidence more heavily than date confidence', () => {
+        // Known category ("ข้าวมันไก่" -> food, high category confidence)
+        // combined with a low date confidence, e.g. 0.55 (a guessed time-of-day).
+        const result = parseCandidate(
+            'ข้าวมันไก่ 50',
+            date,
+            0.55,
         )
+
+        expect(result).not.toBeNull()
+        expect(result!.confidence).toBeGreaterThan(0.55)
+        expect(result!.confidence).toBeLessThanOrEqual(1)
+    })
+
+    it('should include the date warning when provided', () => {
+        const result = parseCandidate(
+            'ข้าวมันไก่ 50',
+            date,
+            0.55,
+            'Interpreted time as a guess — please verify.',
+        )
+
+        expect(result).not.toBeNull()
+        expect(result!.warning).toContain(
+            'Interpreted time as a guess — please verify.',
+        )
+    })
+
+    it('should not include a warning field when there is nothing to warn about', () => {
+        const result = parseCandidate(
+            'ข้าวมันไก่ 50',
+            date,
+            0.9,
+        )
+
+        expect(result).not.toBeNull()
+        expect(result!.warning).toBeUndefined()
+    })
+
+    it('should fall back to the "other" category with low confidence for unrecognized descriptions', () => {
+        const result = parseCandidate(
+            'xyzxyzไม่รู้จัก 100',
+            date,
+            0.9,
+        )
+
+        expect(result).not.toBeNull()
+        expect(result!.category!.id).toBe('other')
+        expect(result!.warning).toBeDefined()
     })
 })
