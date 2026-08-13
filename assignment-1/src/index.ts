@@ -1,6 +1,9 @@
 import { Hono } from 'hono'
 import { extractDate } from './parser/date'
-import { splitCandidates } from './parser/splitter'
+import {
+  splitCandidates,
+  parseCandidate,
+} from './parser/transaction'
 
 const app = new Hono()
 
@@ -34,6 +37,18 @@ app.post('/parse', async (c) => {
   // 2: Split the remaining text into transaction candidates
   const candidates = splitCandidates(dateResult.cleanedText)
   /**
+   * Parses each transaction candidate into a structured Transaction object.
+   *
+   * Each candidate is expected to contain a description and an amount.
+   * Example: "ข้าวมันไก่ 50" => { description: "ข้าวมันไก่", amount: 50 }
+   */
+  // 3. Parse each candidate into a transaction
+  const transactions = candidates
+    .map((candidate) =>
+      parseCandidate(candidate, dateResult.date),
+    )
+    .filter((transaction) => transaction !== null)
+  /**
    * Return the parsed date and transaction candidates as JSON.
    * The date is returned in ISO 8601 format.
    * {
@@ -46,8 +61,7 @@ app.post('/parse', async (c) => {
    * }
    */
   return c.json({
-    date: dateResult.date.toISOString(),
-    candidates,
+    transactions,
   })
 })
 
