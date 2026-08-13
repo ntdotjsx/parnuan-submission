@@ -18,6 +18,7 @@ import { createId } from "../utils"
 export function splitCandidates(text: string): string[] {
     const normalized = text
         .replace(/แล้วก็/g, "|")
+        .replace(/และก็/g, "|")
         .replace(/และ/g, "|")
         .trim()
 
