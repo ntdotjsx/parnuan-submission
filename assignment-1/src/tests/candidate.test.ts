@@ -126,7 +126,9 @@ describe('parseCandidate', () => {
         expect(result).toMatchObject({
             description: 'ข้าวมันไก่',
             amount: 50,
-            category: null,
+            category: {
+                id: 'food',
+            },
             date: date.toISOString(),
         })
     })

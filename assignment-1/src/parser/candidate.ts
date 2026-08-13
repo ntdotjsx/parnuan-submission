@@ -1,5 +1,6 @@
 import type { Transaction } from "../types"
 import { createId } from "../utils"
+import { findCategory } from "../utils"
 /**
  * Split one message into transaction candidates.
  * @param text - A string containing one or more transaction candidates.
@@ -93,11 +94,13 @@ export function parseCandidate(
         return null
     }
 
+    const categoryResult = findCategory(description)
+
     return {
         id: createId(),
         description,
         amount,
-        category: null, // Category will be assigned later in the processing pipeline
+        category: categoryResult.category,
         date: date.toISOString(),
     }
 }
