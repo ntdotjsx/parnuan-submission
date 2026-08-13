@@ -3,8 +3,10 @@ import { extractDate } from "./date"
 import { splitCandidates, parseCandidate } from "./candidate"
 
 /**
- * Parses a string containing one or more transactions.
- * Each transaction is expected to contain a description and an amount.
+ *  Parses a string containing one or more transactions.
+ *  Each transaction is expected to contain a description and an amount.
+ * @param input - A string containing one or more transactions.
+ * @returns An array of parsed Transaction objects.
  *
  * Example input:
  * "เมื่อวาน ข้าวมันไก่ 50 น้ำเปล่า 7"

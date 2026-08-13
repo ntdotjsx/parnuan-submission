@@ -2,7 +2,8 @@ import type { Transaction } from "../types"
 import { createId } from "../utils"
 /**
  * Split one message into transaction candidates.
- *
+ * @param text - A string containing one or more transaction candidates.
+ * @returns An array of transaction candidate strings.
  * Example:
  *
  * ข้าวมันไก่ 50 น้ำเปล่า 7 แล้วก็ช้อปปิ้ง 500

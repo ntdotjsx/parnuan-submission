@@ -1,7 +1,8 @@
 
 /**
  * Extract date/time from Thai text.
- *
+ * @param text - A string containing Thai text with potential date/time expressions.
+ * @returns An object containing the extracted date and the cleaned text.
  * Supported examples:
  *
  * เมื่อวาน
