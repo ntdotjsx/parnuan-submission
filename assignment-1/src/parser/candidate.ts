@@ -67,6 +67,8 @@ export function splitCandidates(text: string): string[] {
  * Parse one transaction candidate.
  * @param candidate - A string containing a transaction candidate.
  * @param date - The date associated with the transaction.
+ * @param dateConfidence - The confidence score of the extracted date.
+ * @param dateWarning - An optional warning related to the extracted date.
  * @returns A Transaction object or null if parsing fails.
  * Example:
  *
@@ -111,10 +113,9 @@ export function parseCandidate(
      * Category confidence has more weight because
      * it directly affects transaction classification.
      */
-    const confidence =
-        categoryResult.confidence * 0.7 +
-        dateConfidence * 0.3
-
+    const confidence = Number(
+        (categoryResult.confidence * 0.7 + dateConfidence * 0.3).toFixed(2),
+    )
 
     return {
         id: createId(),

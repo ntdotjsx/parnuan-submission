@@ -12,9 +12,6 @@ export function createId(): string {
  * The category is determined by matching the description
  * against predefined category keywords.
  *
- * @param description - The transaction description to categorize.
- * @returns An object containing the matched category, confidence score, and an optional warning.
- *
  * Matching strategy (documented, simplified for POC):
  * - Substring match against each category's keyword list.
  * - If multiple categories match, the one with the MOST matched

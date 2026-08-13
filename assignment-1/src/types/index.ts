@@ -7,9 +7,9 @@ export type Transaction = {
     id: string
     description: string
     amount: number
-    category: Category | null
+    category: Category
     date: string
-    confidence: number //ความมั่นใจในการจัดหมวดหมู่ของรายการธุรกรรม
+    confidence: number //ความมั่นใจโดยรวมของรายการ (ผสมจาก category confidence และ date confidence)
     warning?: string[] //คำเตือนหรือข้อความแจ้งเตือนที่เกี่ยวข้องกับรายการธุรกรรม
 }
 
