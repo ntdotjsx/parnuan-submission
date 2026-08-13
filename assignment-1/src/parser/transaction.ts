@@ -1,101 +1,56 @@
 import type { Transaction } from "../types"
-import { createId } from "../utils"
+import { extractDate } from "./date"
+import { splitCandidates, parseCandidate } from "./candidate"
+
 /**
- * Split one message into transaction candidates.
+ * Parses a string containing one or more transactions.
+ * Each transaction is expected to contain a description and an amount.
  *
- * Example:
- *
- * ข้าวมันไก่ 50 น้ำเปล่า 7 แล้วก็ช้อปปิ้ง 500
+ * Example input:
+ * "เมื่อวาน ข้าวมันไก่ 50 น้ำเปล่า 7"
  *
  * =>
- *
  * [
- *   "ข้าวมันไก่ 50",
- *   "น้ำเปล่า 7",
- *   "ช้อปปิ้ง 500"
+ *   { description: "ข้าวมันไก่", amount: 50, date: "2023-09-14" },
+ *   { description: "น้ำเปล่า", amount: 7, date: "2023-09-14" }
  * ]
  */
-export function splitCandidates(text: string): string[] {
-    const normalized = text
-        .replace(/แล้วก็/g, "|")
-        .replace(/และ/g, "|")
-        .trim()
-
-    const candidates = normalized
-        .split("|")
-        .flatMap((part) => {
-            const result: string[] = []
-
-            let remaining = part.trim()
-
-            while (remaining.length > 0) {
-                /*
-                 * Find:
-                 *
-                 * description + amount
-                 *
-                 * Example:
-                 * "ข้าวมันไก่ 50 น้ำเปล่า 7"
-                 *
-                 * => "ข้าวมันไก่ 50"
-                 */
-                const match = remaining.match(
-                    /^(.+?\s\d+(?:\.\d+)?)\s+(?=\S)/,
-                )
-
-                if (!match) {
-                    result.push(remaining)
-                    break
-                }
-
-                result.push(match[1].trim())
-
-                remaining = remaining
-                    .slice(match[0].length)
-                    .trim()
-            }
-
-            return result
-        })
-
-    return candidates.filter(Boolean)
-}
-/**
- * Parse one transaction candidate.
- *
- * Example:
- *
- * "ข้าวมันไก่ 50"
- *
- * =>
- *
- * description = "ข้าวมันไก่"
- * amount = 50
- */
-export function parseCandidate(
-    candidate: string,
-    date: Date,
-): Transaction | null {
-    const match = candidate.match(
-        /(.+?)\s+(\d+(?:\.\d+)?)$/,
+export function parseTransactions(
+    input: string,
+): Transaction[] {
+    /**
+     * Extracts a date and optional time reference from Thai text.
+     *
+     * Supported patterns:
+     * - เมื่อวาน
+     * - เมื่อวานตอน 5 โมง
+     * - เมื่อวานตอน 5 โมงครึ่ง
+     *
+     * Returns the resolved date and the input text with the
+     * recognized date/time expression removed.
+     */
+    // 1: Extract date/time information
+    const dateResult = extractDate(input)
+    /**
+     * Splits a message into individual transaction candidates.
+     *
+     * Supports multiple transactions separated by Thai conjunctions
+     * such as "และ" and "แล้วก็".
+     */
+    // 2: Split the remaining text into transaction candidates
+    const candidates = splitCandidates(
+        dateResult.cleanedText,
     )
-
-    if (!match) {
-        return null
-    }
-
-    const description = match[1].trim()
-    const amount = Number(match[2])
-
-    if (!description || Number.isNaN(amount)) {
-        return null
-    }
-
-    return {
-        id: createId(),
-        description,
-        amount,
-        category: null, // Category will be assigned later in the processing pipeline
-        date: date.toISOString(),
-    }
+    // 3: Parse each candidate into a structured Transaction object
+    return candidates
+        .map((candidate) =>
+            parseCandidate(
+                candidate,
+                dateResult.date,
+            ),
+        )
+        .filter(
+            (transaction): transaction is Transaction =>
+                transaction !== null,
+        )
 }
