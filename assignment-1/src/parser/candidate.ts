@@ -65,7 +65,9 @@ export function splitCandidates(text: string): string[] {
 }
 /**
  * Parse one transaction candidate.
- *
+ * @param candidate - A string containing a transaction candidate.
+ * @param date - The date associated with the transaction.
+ * @returns A Transaction object or null if parsing fails.
  * Example:
  *
  * "ข้าวมันไก่ 50"
@@ -94,6 +96,7 @@ export function parseCandidate(
         return null
     }
 
+    // Find the most likely category for the transaction description
     const categoryResult = findCategory(description)
 
     return {
