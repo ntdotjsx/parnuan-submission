@@ -270,7 +270,7 @@ uiRouter.post('/ui/confirm', async (c) => {
  *
  * สลับการตั้งค่า เปิด หรือ ปิด ใช้งาน Memory ของผู้ใช้ผ่าน UI:
  * - อัปเดตการตั้งค่าใน Collection user_settings
- * - ส่งคืนสถานะสวิตช์ใหม่กลับไปอัปเดตหน้าเว็บ
+ * - ส่งคืนสถานะสวิตช์ใหม่พร้อมส่ง Out-of-Band (OOB) Swap อัปเดต Profile Card ด้านบนทันที
  */
 uiRouter.post('/ui/settings/memory', async (c) => {
     const body = await c.req.parseBody()
@@ -286,13 +286,25 @@ uiRouter.post('/ui/settings/memory', async (c) => {
 
     const statusText = enabled ? 'เปิดใช้งานความจำแล้ว' : 'ปิดใช้งานความจำแล้ว'
     const badgeClass = enabled
-        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-        : 'bg-slate-100 text-slate-600 border-slate-300'
+        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+        : 'bg-slate-50 text-slate-600 border-slate-200'
+
+    const dotClass = enabled ? 'bg-emerald-500' : 'bg-slate-400'
+    const profileStatusText = enabled ? 'เปิดใช้งานความจำ' : 'ปิดใช้งานความจำ'
 
     return c.html(`
         <span class="text-xs font-semibold px-2.5 py-1 rounded-full border ${badgeClass} transition-all">
             ${statusText}
         </span>
+
+        <span id="user-avatar-dot" hx-swap-oob="true" class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${dotClass} transition-all"></span>
+
+        <div id="user-memory-status" hx-swap-oob="true" class="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5 transition-all">
+            <span class="inline-block w-1.5 h-1.5 rounded-full ${dotClass}"></span>
+            <span>${profileStatusText}</span>
+            <span class="text-slate-300">•</span>
+            <span class="text-slate-400 text-[11px] font-mono">${user.id}</span>
+        </div>
     `)
 })
 

@@ -1,6 +1,6 @@
 <% if (!it.transactions || it.transactions.length === 0) { %>
   <div class="bg-amber-50 border border-dashed border-amber-300 rounded-2xl p-6 text-center text-amber-800 flex flex-col items-center gap-2">
-    <h3 class="text-base font-bold">ไม่พบรายการที่สามารถแปลงได้</h3>
+    <h3 class="text-base font-bold">⚠️ ไม่พบรายการที่สามารถแปลงได้</h3>
     <p class="text-xs sm:text-sm text-amber-700">
       กรุณาระบุชื่อรายการพร้อมจำนวนเงิน เช่น <strong>"ข้าวมันไก่ 50"</strong> หรือ <strong>"เมื่อวานขึ้น bts 45 ช้อปปิ้ง 200"</strong>
     </p>
@@ -14,7 +14,7 @@
       <!-- Section Header -->
       <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
         <div class="flex items-center gap-2">
-          <h2 class="text-lg font-bold text-slate-800">ตรวจสอบรายการก่อนบันทึก (Review Transactions)</h2>
+          <h2 class="text-lg font-bold text-slate-800">📝 ตรวจสอบรายการก่อนบันทึก (Review Transactions)</h2>
         </div>
         <div class="flex items-center gap-2">
           <span class="text-xs text-slate-500 font-medium">บันทึกให้: <strong><%= it.currentUser.name %></strong></span>
@@ -43,27 +43,27 @@
             <div class="flex flex-wrap items-center justify-between gap-2 text-xs border-b border-slate-200/60 pb-2">
               <div class="flex items-center gap-2">
                 <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center">
-                  <%= index + 1 %>
+                  #<%= index + 1 %>
                 </span>
                 <span class="text-slate-500 font-medium">
-                  วันที่: <%= formattedDate %>
+                  📅 <%= formattedDate %>
                 </span>
               </div>
 
               <div class="flex items-center gap-2">
                 <% if (isFromMemory) { %>
                   <span class="bg-pink-100 text-pink-700 border border-pink-300 px-2 py-0.5 rounded-md font-bold text-xs">
-                    [จัดหมวดจากความจำ]
+                    🧠 [จัดหมวดจากความจำ]
                   </span>
                 <% } else { %>
                   <span class="bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-md font-medium text-xs">
-                    [จัดหมวดโดยระบบ]
+                    ⚙️ [จัดหมวดโดยระบบ]
                   </span>
                 <% } %>
 
                 <% if (transaction.warning && transaction.warning.length > 0) { %>
                   <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md border border-amber-200 font-medium">
-                    เตือน: <%= transaction.warning[0] %>
+                    ⚠️ <%= transaction.warning[0] %>
                   </span>
                 <% } %>
 
@@ -100,10 +100,10 @@
                   หมวดหมู่ (Category)
                 </label>
                 <select name="category" class="w-full px-2.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-[#d53583] focus:ring-2 focus:ring-pink-500/20 transition-all cursor-pointer">
-                  <option value="food" <%= (transaction.category?.id === 'food') ? 'selected' : '' %>>อาหาร (food)</option>
-                  <option value="shopping" <%= (transaction.category?.id === 'shopping') ? 'selected' : '' %>>ช้อปปิ้ง (shopping)</option>
-                  <option value="transport" <%= (transaction.category?.id === 'transport') ? 'selected' : '' %>>ขนส่ง/เดินทาง (transport)</option>
-                  <option value="other" <%= (transaction.category?.id === 'other') ? 'selected' : '' %>>อื่นๆ (other)</option>
+                  <option value="food" <%= (transaction.category?.id === 'food') ? 'selected' : '' %>>🍔 อาหาร (food)</option>
+                  <option value="shopping" <%= (transaction.category?.id === 'shopping') ? 'selected' : '' %>>🛍️ ช้อปปิ้ง (shopping)</option>
+                  <option value="transport" <%= (transaction.category?.id === 'transport') ? 'selected' : '' %>>🚗 ขนส่ง/เดินทาง (transport)</option>
+                  <option value="other" <%= (transaction.category?.id === 'other') ? 'selected' : '' %>>📦 อื่นๆ (other)</option>
                 </select>
               </div>
             </div>
@@ -113,7 +113,9 @@
 
       <!-- Total Summary Card -->
       <div class="bg-pink-50/80 border border-pink-200 rounded-xl p-4 flex items-center justify-between">
-        <span class="text-slate-600 text-sm font-medium">สรุปทั้งหมด <%= it.transactions.length %> รายการ</span>
+        <span class="text-slate-600 text-sm font-medium flex items-center gap-1.5">
+          <span>🧾</span> สรุปทั้งหมด <%= it.transactions.length %> รายการ
+        </span>
         <div class="text-right">
           <span class="text-xs text-slate-500 block">ยอดรวมทั้งสิ้น</span>
           <span class="text-xl font-bold text-[#d53583]">
@@ -124,7 +126,7 @@
 
       <!-- Submit / Confirm Button -->
       <button type="submit" class="w-full py-3 px-6 bg-gradient-to-r from-[#d53583] to-[#b51f68] hover:from-[#c22874] hover:to-[#9c1356] active:scale-[0.99] text-white font-bold text-base rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-md">
-        <span>ยืนยันบันทึกลงฐานข้อมูลและเรียนรู้ (Confirm & Learn)</span>
+        <span>✅ ยืนยันบันทึกลงฐานข้อมูลและเรียนรู้ (Confirm & Learn)</span>
       </button>
     </div>
   </form>
