@@ -1,4 +1,4 @@
-import type { Category } from '../../types'
+import type { Category } from '../parser/types'
 
 export const CATEGORIES: Category[] = [
     {

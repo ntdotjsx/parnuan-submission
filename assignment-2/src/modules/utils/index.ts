@@ -1,4 +1,4 @@
-import type { FindCategoryResult } from "../../types"
+import type { FindCategoryResult } from "../parser/types"
 import { CATEGORIES, CATEGORY_KEYWORDS } from "../constants/categories"
 
 // Creates a unique ID
