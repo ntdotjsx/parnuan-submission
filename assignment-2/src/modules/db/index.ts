@@ -1,0 +1,128 @@
+import { MongoClient, type Db } from 'mongodb'
+import type { TransactionDoc, UserSettingsDoc } from './models'
+
+// กำหนดค่า Configuration พร้อมค่า Default ที่ปลอดภัย
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017'
+const DB_NAME = process.env.MONGODB_DB_NAME || 'error'
+
+let client: MongoClient | null = null
+let db: Db | null = null
+let connectionPromise: Promise<Db> | null = null
+
+/**
+ * ฟังก์ชันเชื่อมต่อ MongoDB แบบ Singleton พร้อมป้องกัน Race Condition
+ */
+export async function connectDb(): Promise<Db> {
+    if (db) return db
+    if (connectionPromise) return connectionPromise
+
+    connectionPromise = (async () => {
+        try {
+            // ตั้งค่า Connection Pool Options ให้เหมาะสม
+            client = new MongoClient(MONGODB_URI, {
+                maxPoolSize: 10,                 // จำนวน Connection สูงสุดใน Pool
+                minPoolSize: 2,                  // จำนวน Connection สำรองไว้เสมอ
+                serverSelectionTimeoutMS: 5000,  // Timeout ถ้าหา Server ไม่เจอใน 5 วินาที
+                connectTimeoutMS: 10000,         // Timeout การเชื่อมต่อเริ่มต้น
+            })
+
+            await client.connect()
+            db = client.db(DB_NAME)
+            console.log(`[MongoDB] Connected successfully to database: "${DB_NAME}"`)
+
+            // สร้าง Indexes อัตโนมัติใน Background
+            await initIndexes(db)
+
+            return db
+        } catch (error) {
+            console.error('MongoDB] Connection failed:', error)
+            // รีเซ็ตสถานะเพื่อให้ลองเชื่อมต่อใหม่ได้ในรอบถัดไป
+            client = null
+            db = null
+            connectionPromise = null
+            throw error
+        }
+    })()
+
+    return connectionPromise
+}
+
+/**
+ * ดึง Database Instance (โยน Error ชัดเจนถ้ายังไม่ได้เชื่อมต่อ)
+ */
+export function getDb(): Db {
+    if (!db) {
+        throw new Error('[MongoDB] Database is not connected. Call connectDb() first.')
+    }
+    return db
+}
+
+/**
+ * ดึง Typed Collections สำหรับใช้งานใน Service
+ */
+export function getCollections() {
+    const database = getDb()
+    return {
+        transactions: database.collection<TransactionDoc>('transactions'),
+        userSettings: database.collection<UserSettingsDoc>('user_settings'),
+    }
+}
+
+/**
+ * สร้าง Index สำคัญเพื่อเร่งความเร็วในการคำนวณ Memory (Derived Memory View)
+ */
+async function initIndexes(database: Db): Promise<void> {
+    try {
+        const transactions = database.collection<TransactionDoc>('transactions')
+        const userSettings = database.collection<UserSettingsDoc>('user_settings')
+
+        await Promise.all([
+            // Index สำหรับ Query Memory ด้วย userId + normalizedKey
+            transactions.createIndex({ userId: 1, normalizedKey: 1 }),
+            // Index สำหรับเรียงลำดับเวลา (Recency)
+            transactions.createIndex({ userId: 1, updatedAt: -1 }),
+            // Unique Index สำหรับการตั้งค่าผู้ใช้
+            userSettings.createIndex({ userId: 1 }, { unique: true }),
+        ])
+
+        console.log('MongoDB] Indexes initialized successfully.')
+    } catch (error) {
+        console.warn('MongoDB] Index initialization warning:', error)
+    }
+}
+
+/**
+ * Health Check: ตรวจสอบว่าฐานข้อมูลยังตอบสนองอยู่หรือไม่
+ */
+export async function pingDb(): Promise<boolean> {
+    try {
+        if (!db) return false
+        await db.command({ ping: 1 })
+        return true
+    } catch {
+        return false
+    }
+}
+
+/**
+ * ปิด Connection อย่างปลอดภัย (Graceful Shutdown)
+ */
+export async function closeDb(): Promise<void> {
+    if (client) {
+        await client.close()
+        client = null
+        db = null
+        connectionPromise = null
+        console.log('MongoDB] Connection pool closed.')
+    }
+}
+
+// ดักจับสัญญาณปิดโปรแกรม (SIGINT / SIGTERM) เพื่อ Graceful Shutdown
+if (typeof process !== 'undefined') {
+    const handleShutdown = async () => {
+        await closeDb()
+        process.exit(0)
+    }
+    process.once('SIGINT', handleShutdown)
+    process.once('SIGTERM', handleShutdown)
+}
