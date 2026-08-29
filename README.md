@@ -33,7 +33,7 @@
 2. **Human-in-the-loop & Transparency (ออกแบบโดยคำนึงถึงความจริง):**
    - ภาษาธรรมชาติของมนุษย์มีความกำกวมสูงมาก ระบบที่ดีจึงไม่ควร "เดาแล้วบันทึกให้เองแบบหลับหูหลับตา" แต่ต้องแสดงผลลัพธ์พร้อมระดับความมั่นใจ (Confidence Score) และมีหน้าจอให้ผู้ใช้ตรวจสอบ แก้ไข (Inspect/Edit) ได้สะดวกรวดเร็วก่อนยืนยันเสมอ
 3. **Robust Data Architecture (สถาปัตยกรรมข้อมูลที่เชื่อถือได้):**
-   - ใน Assignment 2 ผมเลือกใช้แนวคิด **Dynamic Derived View ผ่าน MongoDB Aggregation Pipeline** แทนการสร้างตาราง `memories` แยกต่างหาก เพื่อแก้ปัญหา Data Drift และ Stale Memory 100% ทำให้ประวัติการเงินและความจำของระบบซิงค์ตรงกันเสมอแบบ Real-time
+   - ใน Assignment 2 ผมเลือกใช้แนวคิด **Dynamic Derived View ผ่าน MongoDB Aggregation Pipeline** แทนการสร้างตาราง `memories` แยกต่างหาก การ Derive ความจำจากประวัติธุรกรรมโดยตรงช่วยป้องกันปัญหา Synchronization Drift ระหว่าง Store ความจำอิสระกับ Transaction Source of Truth ทำให้ประวัติการเงินและความจำของระบบซิงค์ตรงกันเสมอแบบ Real-time
 4. **ความจริงใจและโปร่งใสในการทำงาน (Work Transparency):**
    - ในช่วงที่ทำโปรเจกต์นี้ ผมกำลังทำโปรเจกต์จบ (Senior Project) ควบคู่ไปด้วย จึงต้องบริหารเวลาอย่างเข้มงวด โดยผมได้บันทึกเวลาทำงานผ่าน **WakaTime** เพื่อแสดงเวลาและกระบวนการทำงานจริง
    - ผมใช้ AI เป็น Accelerator ในการช่วยระดมความคิด ร่างโครง UI และ Generate Test Cases จากนั้นนำมา Review, Refactor Logic และเขียน Core Architecture ด้วยตัวเองทุกส่วน
@@ -56,7 +56,7 @@ parnuan-submission/
 ├── assignment-2/               # [Bonus] Memory / Learn from Corrections
 │   ├── src/                    # Memory engine, MongoDB models, Dashboard UI
 │   ├── static/                 # Assets & icons
-│   ├── tests/ (or *.test.ts)   # Unit tests (49 tests)
+│   ├── tests/ (or *.test.ts)   # Unit tests (64 tests)
 │   ├── ASSIGNMENT.md           # เอกสารโจทย์ Assignment 2
 │   └── README.md               # เอกสารสรุปเชิงลึกของ Assignment 2
 │

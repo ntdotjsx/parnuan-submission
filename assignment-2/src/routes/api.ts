@@ -404,11 +404,12 @@ apiRouter.delete('/memory', async (c) => {
 /**
  * Route: POST /api/memory/clear
  *
- * ล้างประวัติความจำทั้งหมดของผู้ใช้:
- * - ลบประวัติธุรกรรมทั้งหมดของผู้ใช้งานนั้น
+ * ล้างประวัติความจำทั้งหมดของผู้ใช้ (Non-destructive Reset):
+ * - ทำเครื่องหมายลืมความจำในประวัติธุรกรรมทั้งหมดของผู้ใช้งานนั้น
+ * - ไม่ลบประวัติธุรกรรมจริงออกจากฐานข้อมูล
  *
  * @param c - Context ของ Hono Framework พร้อม Request Body { userId: string }
- * @returns จำนวนรายการทั้งหมดที่ถูกล้าง
+ * @returns จำนวนรายการทั้งหมดที่ถูกล้างความจำ
  */
 apiRouter.post('/memory/clear', async (c) => {
     let rawUserId = c.req.query('userId') || c.req.header('x-user-id')

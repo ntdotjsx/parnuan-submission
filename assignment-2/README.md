@@ -29,7 +29,10 @@
 * **Passive Learning from Transactions:** ระบบไม่ได้ให้ผู้ใช้มานั่งสอนกฎทีละข้อ (Explicit Rule Teaching) แต่เรียนรู้จากพฤติกรรมจริงในอดีตของผู้ใช้ผ่านทุกรายการที่กดยืนยันบันทึก (Confirmed Transactions)
 * **Per-User Memory Isolation:** ความจำถูกแยกขาดออกจากกันตามรายผู้ใช้ (`userId`) พฤติกรรมของ "นัท" จะไม่ส่งผลต่อการจัดหมวดหมู่ของ "เติ้ล"
 * **Real-time Synchronization on Edit:** เมื่อผู้ใช้แก้ไขหมวดหมู่ของรายการในอดีต (เช่น เปลี่ยน `ข้าวมันไก่` จาก `อาหาร` เป็น `ข้าวเช้า`) ความจำของระบบจะอัปเดตตามทันที และมีข้อความแจ้งเตือน "อัปเดตความจำแล้ว"
-* **User Control (Settings Toggle):** มีสวิตช์เปิด/ปิด "จัดหมวดด้วยความจำ" แยกรายบุคคล เมื่อปิดใช้งาน ระบบจะถอยกลับไปใช้ Parser เริ่มต้น และเมื่อเปิดใหม่ ความจำจะยังคงถูกต้องสอดคล้องกับประวัติทั้งหมด
+* **User Control (Settings Toggle):** มีสวิตช์เปิด/ปิด "จัดหมวดด้วยความจำ" แยกรายบุคคล เมื่อปิดใช้งาน (Memory OFF):
+  - ระบบจะถอยกลับไปใช้ Parser เริ่มต้น โดยธุรกรรมยังคงถูกบันทึกลงฐานข้อมูลตามปกติ (Transaction Persistence)
+  - รายการที่บันทึกขณะปิด Memory จะถูกบันทึกด้วย `memoryEligible: false` เพื่อไม่ให้นำไปเป็น Learning Signal ในอนาคต
+  - เมื่อเปิดใช้งาน Memory กลับมา รายการที่เคยสร้างตอนปิดจะไม่ส่งผลต่อความจำ และระบบจะนำเฉพาะประวัติที่มีสิทธิ์ (Eligible History) กลับมาคำนวณตามเดิม
 
 ---
 
@@ -106,7 +109,7 @@ flowchart TD
 
 ### เหตุผลทางวิศวกรรม:
 
-* **Single Source of Truth:** เมื่อประวัติธุรกรรมถูกแก้ไขหรือลบ ความจำจะเปลี่ยนแปลงตามทันที 100% โดยไม่มีปัญหา Data Drift หรือปัญหาความจำค้าง (Stale Memory)
+* **Single Source of Truth:** เมื่อประวัติธุรกรรมถูกแก้ไขหรือลบ ความจำจะเปลี่ยนแปลงตามทันที การ Derive ความจำจากประวัติธุรกรรมโดยตรงช่วยป้องกันปัญหา Synchronization Drift ระหว่าง Store ความจำอิสระกับ Transaction Source of Truth
 * **Zero Synchronization Lag:** ไม่ต้องเขียน Background Job หรือ Trigger คอยซิงค์ข้อมูลระหว่าง 2 ตาราง
 
 ### MongoDB Schemas:
@@ -123,6 +126,8 @@ interface TransactionDocument {
   categoryId: string;      // รหัสหมวดหมู่ (เช่น food, breakfast, custom_cat)
   categoryTitle: string;   // ชื่อหมวดหมู่ภาษาไทย (เช่น ข้าวเช้า, ช้อปปิ้ง)
   date: Date;              // วันที่ของธุรกรรม
+  memoryEligible?: boolean;// มีสิทธิ์นำไปคำนวณความจำหรือไม่ (false เมื่อบันทึกตอน Memory OFF)
+  memoryExcluded?: boolean;// ถูกสั่งลืมความจำหรือไม่ (true เมื่อผู้ใช้สั่ง Forget/Clear)
   createdAt: Date;         // เวลาที่บันทึกเข้าระบบ
   updatedAt: Date;         // เวลาที่แก้ไขล่าสุด
 }
@@ -475,8 +480,10 @@ Fallback Assignment 1 Parser
 ### 4.3 การคำนวณคะแนนความมั่นใจ (Confidence Heuristic)
 
 * **ความถี่ 1 ครั้ง:** ความมั่นใจ 85% (`confidence = 0.85`)
-* **ความถี่ 2 ครั้งขึ้นไปและเป็นเอกฉันท์:** ความมั่นใจ 95% (`confidence = 0.95`)
-* **มีประวัติขัดแย้งกัน (เช่น อาหาร 2 ครั้ง, ข้าวเช้า 1 ครั้ง):** คำนวณตามสัดส่วน `ratio = count / total` ปรับสเกลให้อยู่ในช่วง 0.70 - 0.90
+* **ความถี่ 2 ครั้งขึ้นไปและเป็นเอกฉันท์ (Unanimous):** ความมั่นใจ 95% (`confidence = 0.95`)
+* **มีประวัติขัดแย้งกัน (Conflicting History):** คำนวณแบบสัดส่วนตามสูตร `0.70 + (bestFrequency / totalFrequency) * 0.20` และจำกัดช่วงค่าไว้ที่ `[0.70, 0.90]`
+  - เช่น อาหาร 2 ครั้ง, ข้าวเช้า 1 ครั้ง (total = 3, ratio = 2/3): `0.70 + (2/3) * 0.20 ≈ 0.83` (ไม่เป็น 0.95 เพื่อสะท้อนข้อขัดแย้งในอดีต)
+  - เช่น อาหาร 1 ครั้ง, ข้าวเช้า 1 ครั้ง (total = 2, ratio = 0.5): `0.70 + 0.5 * 0.20 = 0.80`
 
 Confidence ตรงนี้เป็น **Memory Confidence** และแยกจาก Date Confidence ของ `date.ts`
 
@@ -514,7 +521,7 @@ Memory confidence:
 
 1. **Majority Rule:** หมวดหมู่ที่มีจำนวนครั้งการบันทึกมากที่สุดจะได้รับเลือกเป็นอันดับแรก
 2. **Recency Tie-Breaker:** หากจำนวนครั้งเท่ากัน (เช่น บันทึก `อาหาร` 1 ครั้ง และ `ข้าวเช้า` 1 ครั้ง) ระบบจะเลือกหมวดหมู่ของรายการที่มี `updatedAt` / `createdAt` ใหม่ล่าสุด
-3. **Instant Deletion Handling:** หากรายการถูกลบออกจาก `transactions` การคำนวณ Aggregation ครั้งถัดไปจะตัดรายการนั้นออกทันทีโดยอัตโนมัติ
+3. **Non-destructive Forget & Reset:** การสั่งลืมคำเฉพาะหรือล้างความจำทั้งหมด จะไม่ลบเอกสารธุรกรรมจริงออกจาก MongoDB แต่จะตั้งค่า `memoryExcluded: true` บนเอกสารธุรกรรมที่เกี่ยวข้อง เพื่อให้ระบบ Memory มองข้ามข้อมูลเหล่านั้นในการคำนวณความจำ ขณะที่ประวัติธุรกรรม (Financial Transaction History) ของผู้ใช้ยังคงอยู่ครบถ้วน
 
 Flow ของ Conflict Resolution:
 
@@ -597,9 +604,9 @@ Aggregation ครั้งถัดไปจะได้:
 ## 6. Trust & Transparency
 
 * **Inspectable Memory State:** ผู้ใช้สามารถดูรายการคำศัพท์ทั้งหมดที่ระบบเรียนรู้ได้ผ่าน Sidebar บนหน้าเว็บ หรือผ่าน API `GET /api/memory?userId=...` โดยแสดงทั้งจำนวนครั้งที่ใช้ และคะแนนความมั่นใจ
-* **Memory Deletion & Resetting:** ผู้ใช้สามารถควบคุมข้อมูลความจำของตนเองได้เต็มรูปแบบ:
-  * **ลบเฉพาะคำ:** กดปุ่มถังขยะ `🗑️` ที่การ์ดคำศัพท์ หรือเรียก `DELETE /api/memory?userId=...&keyword=...`
-  * **ล้างความจำทั้งหมด:** กดปุ่ม `ล้างทั้งหมด` หรือเรียก `POST /api/memory/clear`
+* **Non-destructive Memory Deletion & Resetting:** ผู้ใช้สามารถควบคุมข้อมูลความจำของตนเองได้เต็มรูปแบบโดยไม่สูญเสียประวัติการเงิน:
+  * **ลืมเฉพาะคำ:** กดปุ่มถังขยะ `🗑️` ที่การ์ดคำศัพท์ หรือเรียก `DELETE /api/memory?userId=...&keyword=...` (ระบบจะยกเว้นคำนั้นจาก Memory โดยประวัติธุรกรรมยังคงอยู่)
+  * **ล้างความจำทั้งหมด:** กดปุ่ม `ล้างทั้งหมด` หรือเรียก `POST /api/memory/clear` (ระบบจะรีเซ็ตความจำทั้งหมดโดยประวัติธุรกรรมยังคงอยู่ครบถ้วน)
 * **Clear Attribution Badge:** ในหน้าตรวจสอบก่อนบันทึก ระบบจะแสดงป้าย `🧠 [จัดหมวดจากความจำ]` หรือ `⚙️ [จัดหมวดโดยระบบ]` ชัดเจน พร้อมเปอร์เซ็นต์ความมั่นใจ
 * **Manual Override & Customization:** ผู้ใช้สามารถเปลี่ยนหมวดหมู่ผ่าน Dropdown หรือพิมพ์หมวดหมู่ใหม่ได้ทันทีก่อนกดยืนยัน
 
@@ -625,7 +632,7 @@ Aggregation ครั้งถัดไปจะได้:
 
 | การตัดสินใจ | สิ่งที่เลือก | ข้อดี | ข้อเสีย / ข้อจำกัดที่ยอมรับ |
 |---|---|---|---|
-| **Data Architecture** | Derived on Read (Aggregation) | ข้อมูล Consistent 100%, แก้ไข/ลบแล้วซิงค์ทันที ไม่เกิด Stale Memory | ต้องคำนวณ Query เมื่อเรียกใช้งาน (แก้ไขได้ด้วย Index `{ userId: 1, normalizedKey: 1 }`) |
+| **Data Architecture** | Derived on Read (Aggregation) | ข้อมูล Consistent, แก้ไข/ลบแล้วซิงค์ทันที ป้องกัน Synchronization Drift | ต้องคำนวณ Query เมื่อเรียกใช้งาน (แก้ไขได้ด้วย Compound Index `{ userId: 1, normalizedKey: 1, memoryEligible: 1, memoryExcluded: 1 }`) |
 | **Matching Engine** | Normalized Exact Match | แม่นยำสูง (High Precision), ไม่เดาสุ่มจนผิดพลาด, ทำงานเร็วมาก (< 5ms) | ไม่รองรับคำพ้องความหมายที่สะกดต่างกันสิ้นเชิง (Semantic Synonyms) |
 | **Technology Stack** | Native MongoDB Driver + Bun | Native ESM, ปลอดภัยจาก ORM overhead, รองรับ Aggregation Pipeline ประสิทธิภาพสูง | ต้องจัดการ Polyfill สำหรับบาง Driver บน Runtime ใหม่ |
 | **Parser Integration** | Memory Layer ครอบ Assignment 1 Parser | แยก Responsibility ชัดเจน และ fallback ได้เสมอ | มี metadata หลายประเภท เช่น Parser Confidence, Date Confidence และ Memory Confidence |
@@ -785,7 +792,7 @@ http://localhost:3000
 bun test
 ```
 
-*ครอบคลุม 57 เทสต์ 150 assertions ครบทั้ง Candidate, Category, Date, Transaction และ Memory Layers*
+*ครอบคลุม 64 เทสต์ 177 assertions ครบทั้ง Candidate, Category, Date, Transaction และ Memory Layers*
 
 Test coverage ถูกแบ่งตาม responsibility หลักของระบบ:
 

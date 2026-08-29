@@ -58,6 +58,27 @@ export function normalizeMemoryKey(text: string): string {
 }
 
 /**
+ * คำนวณระดับความมั่นใจ (Confidence Score) ของ Memory ตามสัดส่วนประวัติการใช้งาน:
+ * - ประวัติ 1 รายการ: 0.85
+ * - ประวัติ 2 รายการขึ้นไป และเป็นเอกฉันท์ (Unanimous): 0.95
+ * - ประวัติที่มีความขัดแย้ง (Conflicting History): 0.70 + (best / total) * 0.20 (จำกัดช่วง 0.70 - 0.90)
+ *
+ * @param bestFrequency - จำนวนครั้งของหมวดหมู่ที่ชนะ (Majority Category)
+ * @param totalFrequency - จำนวนครั้งรวมของทุกหมวดหมู่ที่ตรงกับ Normalized Key
+ * @returns คะแนนความมั่นใจระหว่าง 0.70 ถึง 0.95
+ */
+export function calculateMemoryConfidence(bestFrequency: number, totalFrequency: number): number {
+    if (totalFrequency <= 0 || bestFrequency <= 0) return 0
+    if (totalFrequency === 1) return 0.85
+    if (bestFrequency === totalFrequency) return 0.95
+
+    const ratio = bestFrequency / totalFrequency
+    const rawConfidence = 0.70 + ratio * 0.20
+    const clamped = Math.max(0.70, Math.min(0.90, rawConfidence))
+    return Math.round(clamped * 100) / 100
+}
+
+/**
  * ดึงรายชื่อผู้ใช้งานทั้งหมดที่มีในฐานข้อมูล
  *
  * @returns รายการ User Documents ทั้งหมด
@@ -120,9 +141,10 @@ export async function setMemoryEnabled(userId: string, enabled: boolean): Promis
 /**
  * เรียนรู้และบันทึกประวัติรายการธุรกรรมที่ได้รับการยืนยันแล้วเข้าสู่ฐานข้อมูล (Passive Learning):
  * - แปลงข้อมูลเป็น Transaction Document พร้อมคำนวณ Normalized Key
+ * - บันทึกค่า memoryEligible ตามสถานะ Memory ขณะยืนยัน (เปิด = true, ปิด = false)
  * - ป้องกันการบันทึกรายการซ้ำที่มีชื่อเดียวกัน (Normalized Key) และเวลาวันเดียวกัน (Date) ของผู้ใช้คนเดียวกัน
  * - อนุญาตให้บันทึกรายการที่เวลาเดียวกันได้หากเป็นคนละชื่อ (Different Names)
- * - บันทึกลง Collection transactions ใน MongoDB เพื่อเป็นแหล่งข้อมูลหลักของ Memory
+ * - บันทึกลง Collection transactions ใน MongoDB เสมอ แม้ปิด Memory ก็ยังบันทึกประวัติไว้
  *
  * @param userId - รหัสผู้ใช้
  * @param items - รายการธุรกรรมที่ต้องการบันทึก
@@ -138,6 +160,7 @@ export async function learnTransactions(
 
     const { transactions } = getCollections()
     const now = new Date()
+    const memoryEnabled = await isMemoryEnabled(userId)
 
     /**
      * กรองรายการที่ซ้ำกันภายในชุดข้อมูลเดียวกัน (In-batch deduplication)
@@ -177,6 +200,8 @@ export async function learnTransactions(
         categoryId: item.categoryId,
         categoryTitle: item.categoryTitle,
         date: item.date || now.toISOString(),
+        memoryEligible: memoryEnabled,
+        memoryExcluded: false,
         createdAt: now,
         updatedAt: now,
     }))
@@ -215,9 +240,10 @@ export async function learnTransactions(
 /**
  * ค้นหาหมวดหมู่ที่เหมาะสมที่สุดจากประวัติความจำของผู้ใช้ โดยอาศัย MongoDB Aggregation Pipeline:
  * - กรองเฉพาะประวัติที่เป็นของ User ID และมี Normalized Key ตรงกัน
+ * - กรองเฉพาะรายการที่ memoryEligible != false และ memoryExcluded != true
  * - จัดกลุ่มตามหมวดหมู่ เพื่อนับความถี่และค้นหาเวลาการใช้งานล่าสุด
- * - จัดเรียงลำดับโดยให้ความสำคัญกับความถี่สูงสุด และความสดใหม่ของข้อมูล
- * - คำนวณคะแนนความมั่นใจ (Confidence Score) ตามความถี่การใช้งาน
+ * - จัดเรียงลำดับโดยให้ความสำคัญกับความถี่สูงสุด (Majority) และความสดใหม่ของข้อมูล (Recency Tie-Breaker)
+ * - คำนวณคะแนนความมั่นใจ (Confidence Score) ตามสัดส่วนประวัติการใช้งาน
  *
  * @param userId - รหัสผู้ใช้
  * @param description - ข้อความคำอธิบายรายการที่ต้องการค้นหา
@@ -240,6 +266,8 @@ export async function getMemoryMatch(
             $match: {
                 userId,
                 normalizedKey,
+                memoryEligible: { $ne: false },
+                memoryExcluded: { $ne: true },
             },
         },
         {
@@ -254,22 +282,17 @@ export async function getMemoryMatch(
             $sort: {
                 frequency: -1 as const,
                 lastUsedAt: -1 as const,
+                _id: 1 as const,
             },
         },
-        { $limit: 1 },
     ]
 
     const results = await transactions.aggregate(pipeline).toArray()
     if (results.length === 0) return null
 
     const bestMatch = results[0]
-
-    /**
-     * กำหนดระดับความมั่นใจ:
-     * มีประวัติซ้ำตั้งแต่สองครั้งขึ้นไป ได้รับค่า 0.95
-     * มีประวัติเพียงครั้งเดียว ได้รับค่า 0.85
-     */
-    const confidence = bestMatch.frequency >= 2 ? 0.95 : 0.85
+    const totalFrequency = results.reduce((sum, item) => sum + (item.frequency || 0), 0)
+    const confidence = calculateMemoryConfidence(bestMatch.frequency, totalFrequency)
 
     return {
         categoryId: bestMatch._id,
@@ -284,6 +307,7 @@ export async function getMemoryMatch(
 /**
  * แก้ไขหมวดหมู่ของรายการธุรกรรมที่มีอยู่เดิมในอดีต (Memory Synchronization):
  * - อัปเดต Category ID และชื่อหมวดหมู่ใหม่
+ * - กำหนด memoryEligible เป็น true และ memoryExcluded เป็น false เพื่อให้เรียนรู้ทันที
  * - ปรับปรุงค่าเวลา updatedAt ให้เป็นปัจจุบัน เพื่อให้การจับคู่ความจำสะท้อนการแก้ไขล่าสุด
  *
  * @param userId - รหัสผู้ใช้
@@ -305,6 +329,8 @@ export async function updateTransactionCategory(
             $set: {
                 categoryId: newCategoryId,
                 categoryTitle: newCategoryTitle,
+                memoryEligible: true,
+                memoryExcluded: false,
                 updatedAt: new Date(),
             },
         },
@@ -314,8 +340,8 @@ export async function updateTransactionCategory(
 
 /**
  * รวบรวมและวิเคราะห์ข้อมูลความจำทั้งหมดของผู้ใช้เพื่อนำมาแสดงผล (Inspectable Memory):
- * - ประมวลผลกลุ่มคำศัพท์ทั้งหมดที่ผู้ใช้เคยบันทึก
- * - ระบุหมวดหมู่ที่ใช้บ่อยที่สุดสำหรับแต่ละคำศัพท์ พร้อมคะแนนความมั่นใจ
+ * - ประมวลผลกลุ่มคำศัพท์ทั้งหมดที่ผู้ใช้เคยบันทึกและไม่ถูกยกเว้น (Eligible & Not Excluded)
+ * - ระบุหมวดหมู่ที่ใช้บ่อยที่สุดสำหรับแต่ละคำศัพท์ พร้อมคะแนนความมั่นใจตามสัดส่วน
  *
  * @param userId - รหัสผู้ใช้
  * @returns รายการวิเคราะห์ความจำของผู้ใช้
@@ -324,7 +350,13 @@ export async function inspectUserMemory(userId: string): Promise<MemoryInsightIt
     const { transactions } = getCollections()
 
     const pipeline = [
-        { $match: { userId } },
+        {
+            $match: {
+                userId,
+                memoryEligible: { $ne: false },
+                memoryExcluded: { $ne: true },
+            },
+        },
         {
             $group: {
                 _id: {
@@ -341,6 +373,7 @@ export async function inspectUserMemory(userId: string): Promise<MemoryInsightIt
                 '_id.normalizedKey': 1 as const,
                 frequency: -1 as const,
                 lastUsedAt: -1 as const,
+                '_id.categoryId': 1 as const,
             },
         },
         {
@@ -349,6 +382,7 @@ export async function inspectUserMemory(userId: string): Promise<MemoryInsightIt
                 preferredCategoryId: { $first: '$_id.categoryId' },
                 preferredCategoryTitle: { $first: '$categoryTitle' },
                 frequency: { $first: '$frequency' },
+                totalFrequency: { $sum: '$frequency' },
                 lastUsedAt: { $first: '$lastUsedAt' },
             },
         },
@@ -363,7 +397,7 @@ export async function inspectUserMemory(userId: string): Promise<MemoryInsightIt
         preferredCategoryTitle: r.preferredCategoryTitle,
         frequency: r.frequency,
         lastUsedAt: r.lastUsedAt,
-        confidence: r.frequency >= 2 ? 0.95 : 0.85,
+        confidence: calculateMemoryConfidence(r.frequency, r.totalFrequency),
     }))
 }
 
@@ -384,32 +418,56 @@ export async function getRecentTransactions(userId: string, limit = 20): Promise
 }
 
 /**
- * ลบความจำสำหรับคำศัพท์ที่ระบุของผู้ใช้:
- * ทำการลบรายการธุรกรรมที่มี normalizedKey ตรงกันสำหรับผู้ใช้นั้น
+ * ลบความจำสำหรับคำศัพท์ที่ระบุของผู้ใช้ (Non-destructive Forget):
+ * อัปเดตรายการธุรกรรมที่มี normalizedKey ตรงกันให้มี memoryExcluded = true
+ * เพื่อไม่ให้นำมาคำนวณใน Memory Layer โดยที่ประวัติธุรกรรมยังคงอยู่ครบถ้วน
  *
  * @param userId - รหัสผู้ใช้
- * @param keyword - คำศัพท์ที่ต้องการลบ
- * @returns จำนวนรายการที่ถูกลบ
+ * @param keyword - คำศัพท์ที่ต้องการลบความจำ
+ * @returns จำนวนรายการที่ถูกทำเครื่องหมายลืมความจำ
  */
 export async function deleteUserMemoryKey(userId: string, keyword: string): Promise<number> {
     const { transactions } = getCollections()
     const normKey = normalizeMemoryKey(keyword)
-    const result = await transactions.deleteMany({
-        userId,
-        normalizedKey: normKey,
-    })
-    return result.deletedCount
+    if (!normKey) return 0
+
+    const result = await transactions.updateMany(
+        {
+            userId,
+            normalizedKey: normKey,
+            memoryExcluded: { $ne: true },
+        },
+        {
+            $set: {
+                memoryExcluded: true,
+                updatedAt: new Date(),
+            },
+        },
+    )
+    return result.modifiedCount
 }
 
 /**
- * ล้างความจำทั้งหมดของผู้ใช้:
- * ทำการลบรายการธุรกรรมทั้งหมดของผู้ใช้งานนั้น
+ * ล้างความจำทั้งหมดของผู้ใช้ (Non-destructive Reset):
+ * อัปเดตรายการธุรกรรมทั้งหมดของผู้ใช้งานนั้นให้มี memoryExcluded = true
+ * เพื่อล้างความจำทั้งหมดโดยที่ประวัติธุรกรรมยังคงอยู่ครบถ้วน
  *
  * @param userId - รหัสผู้ใช้
- * @returns จำนวนรายการทั้งหมดที่ถูกลบ
+ * @returns จำนวนรายการทั้งหมดที่ถูกทำเครื่องหมายล้างความจำ
  */
 export async function clearAllUserMemory(userId: string): Promise<number> {
     const { transactions } = getCollections()
-    const result = await transactions.deleteMany({ userId })
-    return result.deletedCount
+    const result = await transactions.updateMany(
+        {
+            userId,
+            memoryExcluded: { $ne: true },
+        },
+        {
+            $set: {
+                memoryExcluded: true,
+                updatedAt: new Date(),
+            },
+        },
+    )
+    return result.modifiedCount
 }

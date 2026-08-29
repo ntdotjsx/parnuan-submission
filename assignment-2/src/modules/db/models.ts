@@ -13,6 +13,8 @@ export interface TransactionDoc {
     categoryId: string         // รหัสหมวดหมู่ เช่น "food", "shopping"
     categoryTitle: string      // ชื่อหมวดหมู่ภาษาไทย เช่น "อาหาร"
     date: string               // วันที่ของรายการ (ISO String)
+    memoryEligible?: boolean   // true = บันทึกขณะเปิด Memory, false = บันทึกขณะปิด Memory (ไม่นำไปเรียนรู้)
+    memoryExcluded?: boolean   // true = ถูกทำเครื่องหมายลืม/ล้างความจำ (Non-destructive Reset), false/undefined = ใช้งานตามปกติ
     createdAt: Date
     updatedAt: Date
 }

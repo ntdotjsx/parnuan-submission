@@ -10,7 +10,7 @@ if (typeof globalThis.process?.getBuiltinModule === 'function') {
     }
 }
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017'
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://parnuan_submission:parnuan_submission_password@127.0.0.1:27017/parnuan?authSource=admin'
 const DB_NAME = process.env.MONGODB_DB_NAME || 'parnuan'
 
 let client: MongoClientType | null = null
@@ -88,8 +88,8 @@ async function initIndexes(database: Db): Promise<void> {
         const users = database.collection<UserDoc>('users')
 
         await Promise.all([
-            // Index สำหรับ Query Memory ด้วย userId + normalizedKey
-            transactions.createIndex({ userId: 1, normalizedKey: 1 }),
+            // Index สำหรับ Query Memory ด้วย userId + normalizedKey + eligibility
+            transactions.createIndex({ userId: 1, normalizedKey: 1, memoryEligible: 1, memoryExcluded: 1 }),
             // Index สำหรับ Query Memory ด้วยเวลา
             transactions.createIndex({ userId: 1, updatedAt: -1 }),
             // Unique Index สำหรับการตั้งค่าผู้ใช้
