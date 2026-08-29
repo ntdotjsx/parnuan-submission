@@ -80,3 +80,9 @@ export function findCategory(description: string): FindCategoryResult {
         warning: "No matching category found, defaulting to 'other'",
     }
 }
+
+// ฟังก์ชันแปลง categoryId เป็นชื่อภาษาไทย
+export const getCategoryTitle = (catId: string): string => {
+    const found = CATEGORIES.find((c) => c.id === catId)
+    return found ? found.title : catId
+}
