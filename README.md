@@ -171,5 +171,7 @@ bun dev           # เปิดเว็บที่ http://localhost:3000
 
 - **ผู้พัฒนา:** ธนพล พ่ออามาตย์ นัท (ntdotjsx)
 - **ตำแหน่งที่สมัคร:** Software Engineer Intern — Parnuan
+  **เบอร์โทรศัทพ์:** 0826419844
+  **ไลน์:** 9nut000777
 - **อีเมล:** 0ms.ntdotjsx@gmail.com
 - **other contact:** https://www.ntdotjsx.site/
