@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
+  <title>Parnuan Submission — ntdotjsx</title>
+
+  <!-- Tailwind CSS v4 -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  <!-- Marked Markdown Parser (Pinned v12) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+
+  <!-- Highlight.js for Code Highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <!-- Mermaid.js for Diagrams (Pinned v10.9.1) -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root {
+      --background: #f4f4ef;
+      --foreground: #101010;
+      --muted: #76766f;
+      --line: rgba(16, 16, 16, 0.16);
+      --accent: #c7ff36;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--foreground);
+      font-family:
+        "Prompt",
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    .mono {
+      font-family: "Space Mono", monospace;
+    }
+
+    ::selection {
+      background: var(--foreground);
+      color: var(--background);
+    }
+
+    .arrow {
+      transition: transform 250ms cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .project:hover .arrow {
+      transform: translate(5px, -5px);
+    }
+
+    .project-title {
+      transition:
+        opacity 250ms ease,
+        transform 250ms cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .project:hover .project-title {
+      opacity: 0.55;
+      transform: translateX(4px);
+    }
+
+    .tech-logo {
+      transition:
+        transform 300ms cubic-bezier(.22, 1, .36, 1),
+        opacity 300ms ease;
+    }
+
+    .tech-item:hover .tech-logo {
+      transform: scale(1.12) rotate(-3deg);
+    }
+
+    /* Markdown Reader Custom Typography & Layout */
+    .markdown-body {
+      color: #1a1a1a;
+      line-height: 1.8;
+      font-size: 0.9375rem;
+    }
+
+    .markdown-body h1 {
+      font-size: 1.875rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+      color: #101010;
+    }
+
+    .markdown-body h2 {
+      font-size: 1.45rem;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      margin-top: 2.25rem;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      color: #101010;
+    }
+
+    .markdown-body h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-top: 1.75rem;
+      margin-bottom: 0.5rem;
+      color: #101010;
+    }
+
+    .markdown-body h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-top: 1.25rem;
+      margin-bottom: 0.5rem;
+      color: #222;
+    }
+
+    .markdown-body p {
+      margin-bottom: 1.15rem;
+      color: #2d2d2c;
+    }
+
+    .markdown-body ul, .markdown-body ol {
+      margin-bottom: 1.25rem;
+      padding-left: 1.5rem;
+    }
+
+    .markdown-body ul {
+      list-style-type: disc;
+    }
+
+    .markdown-body ol {
+      list-style-type: decimal;
+    }
+
+    .markdown-body li {
+      margin-bottom: 0.35rem;
+      color: #2d2d2c;
+    }
+
+    .markdown-body strong {
+      font-weight: 600;
+      color: #101010;
+    }
+
+    .markdown-body hr {
+      border: 0;
+      border-top: 1px solid rgba(0, 0, 0, 0.12);
+      margin: 2rem 0;
+    }
+
+    .markdown-body a {
+      color: #101010;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: rgba(0, 0, 0, 0.3);
+      font-weight: 500;
+      transition: text-decoration-color 150ms ease;
+    }
+
+    .markdown-body a:hover {
+      text-decoration-color: #101010;
+    }
+
+    .markdown-body table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 0.8125rem;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    .markdown-body th {
+      background: rgba(0, 0, 0, 0.04);
+      padding: 0.65rem 0.85rem;
+      text-align: left;
+      font-weight: 600;
+      color: #101010;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+    }
+
+    .markdown-body td {
+      padding: 0.65rem 0.85rem;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      color: #333;
+    }
+
+    .markdown-body tr:last-child td {
+      border-bottom: none;
+    }
+
+    .markdown-body code:not(pre code) {
+      font-family: "Space Mono", monospace;
+      font-size: 0.8125rem;
+      background: rgba(0, 0, 0, 0.06);
+      padding: 0.15rem 0.4rem;
+      border-radius: 0.25rem;
+      color: #c42b78;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .markdown-body blockquote {
+      border-left: 3px solid #101010;
+      padding: 0.5rem 1rem;
+      margin: 1.25rem 0;
+      background: rgba(0, 0, 0, 0.02);
+      border-radius: 0 0.5rem 0.5rem 0;
+      color: #555;
+    }
+
+    .markdown-body img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      margin: 1.5rem auto;
+      display: block;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    }
+
+    .doc-tab-btn.active {
+      background: #101010;
+      color: #ffffff;
+      border-color: #101010;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="min-h-screen px-5 sm:px-8 lg:px-12">
+
+    <!-- ====================================================== -->
+    <!-- NAVIGATION -->
+    <!-- ====================================================== -->
+
+    <header
+      class="mx-auto flex max-w-[1500px] items-center justify-between border-b border-black/15 py-5"
+    >
+
+      <a
+        href="/"
+        class="text-xl font-bold tracking-[-0.06em]"
+      >
+        NT.
+      </a>
+
+      <div class="flex items-center gap-5 sm:gap-8">
+
+        <a
+          href="#documentation"
+          class="mono text-xs text-black/60 hover:text-black transition-colors uppercase tracking-[0.1em]"
+        >
+          Documentation
+        </a>
+
+        <span
+          class="mono hidden text-[10px] uppercase tracking-[0.12em] text-black/45 sm:block"
+        >
+          TAKE-HOME / 2026
+        </span>
+
+        <a
+          href="https://github.com/ntdotjsx/parnuan-submission"
+          target="_blank"
+          rel="noreferrer"
+          class="group flex items-center gap-2 text-xs font-medium"
+        >
+          GitHub
+
+          <svg
+            class="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+            viewBox="0 0 16 16"
+            fill="none"
+          >
+            <path
+              d="M4 12L12 4M6 4h6v6"
+              stroke="currentColor"
+              stroke-width="1.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+
+        </a>
+
+      </div>
+
+    </header>
+
+
+    <main class="mx-auto max-w-[1500px]">
+
+
+      <!-- ====================================================== -->
+      <!-- HERO -->
+      <!-- ====================================================== -->
+
+      <section
+        class="grid min-h-[15vh] grid-cols-1 items-end gap-10 border-b border-black/15 py-14 md:grid-cols-12 md:py-20"
+      >
+
+        <div class="md:col-span-9">
+
+          <div class="mb-8 flex items-center gap-3">
+
+            <span
+              class="inline-block h-2.5 w-2.5 rounded-full bg-[#c7ff36] ring-1 ring-black/20"
+            ></span>
+
+            <span
+              class="mono text-[10px] uppercase tracking-[0.16em] text-black/50"
+            >
+              Parnuan Software Engineer Intern
+            </span>
+
+          </div>
+
+
+          <h1
+            class="max-w-[1100px] text-[clamp(3.6rem,10vw,9rem)] font-semibold leading-[0.82] tracking-[-0.08em]"
+          >
+            TAKE-HOME
+            <br />
+            SUBMISSION.
+          </h1>
+
+        </div>
+
+
+        <div
+          class="flex flex-col justify-end gap-7 md:col-span-3 md:pb-3"
+        >
+
+          <p
+            class="max-w-sm text-sm leading-6 text-black/60"
+          >
+            Text-to-Transaction Parser และ Personalized Memory Layer
+            ที่ออกแบบให้สามารถรันและตรวจสอบระบบทั้งหมดได้ผ่าน
+            Docker Compose พร้อมเอกสารฉบับเต็ม.
+          </p>
+
+
+          <div
+            class="grid grid-cols-2 border-t border-black/15 pt-4"
+          >
+
+            <div>
+
+              <div
+                class="mono mb-1 text-[9px] uppercase tracking-wider text-black/40"
+              >
+                Developer
+              </div>
+
+              <div class="text-xs font-medium">
+                Nat / ntdotjsx
+              </div>
+
+            </div>
+
+
+            <div>
+
+              <div
+                class="mono mb-1 text-[9px] uppercase tracking-wider text-black/40"
+              >
+                Status
+              </div>
+
+              <div
+                class="flex items-center gap-1.5 text-xs font-medium"
+              >
+                <span
+                  class="h-1.5 w-1.5 rounded-full bg-green-500"
+                ></span>
+
+                Ready
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ====================================================== -->
+      <!-- ASSIGNMENTS -->
+      <!-- ====================================================== -->
+
+      <section class="border-b border-black/15">
+
+        <!-- Section Header -->
+
+        <div
+          class="flex items-end justify-between border-b border-black/15 py-5"
+        >
+
+          <div>
+
+            <span
+              class="mono text-[10px] uppercase tracking-[0.15em] text-black/45"
+            >
+              01 / Submission
+            </span>
+
+            <h2
+              class="mt-2 text-xl font-semibold tracking-[-0.04em]"
+            >
+              Assignments
+            </h2>
+
+          </div>
+
+
+          <span
+            class="mono text-[10px] uppercase tracking-[0.15em] text-black/40"
+          >
+            02 ITEMS
+          </span>
+
+        </div>
+
+
+        <!-- ================================================== -->
+        <!-- ASSIGNMENT 1 -->
+        <!-- ================================================== -->
+
+        <div class="border-b border-black/15 py-8 sm:py-10">
+
+          <div
+            class="grid grid-cols-1 gap-8 md:grid-cols-12 md:items-start"
+          >
+
+            <!-- Number -->
+
+            <div class="md:col-span-1">
+
+              <span
+                class="mono text-xs text-black/45"
+              >
+                01
+              </span>
+
+            </div>
+
+
+            <!-- Main -->
+
+            <div class="md:col-span-6">
+
+              <div
+                class="mb-3 flex flex-wrap items-center gap-3"
+              >
+
+                <span
+                  class="mono text-[9px] uppercase tracking-[0.14em] text-black/45"
+                >
+                  Assignment 1
+                </span>
+
+                <span
+                  class="rounded-full bg-black px-2.5 py-1 text-[9px] font-medium uppercase tracking-wide text-white"
+                >
+                  Required
+                </span>
+
+              </div>
+
+
+              <a
+                href="http://localhost:3001"
+                class="project-title block text-3xl font-semibold leading-none tracking-[-0.055em] sm:text-5xl lg:text-6xl hover:opacity-60 transition-opacity"
+              >
+                Text → Transaction
+              </a>
+
+
+              <p
+                class="mt-5 max-w-xl text-sm leading-6 text-black/55"
+              >
+                Free-form Thai expense text parser ที่แปลงข้อความธรรมชาติ
+                ให้เป็น structured transactions พร้อม category,
+                confidence score และ Review & Confirm UI.
+              </p>
+
+              <!-- Action Links -->
+              <div class="mt-6 flex flex-wrap items-center gap-3">
+                <a
+                  href="http://localhost:3001"
+                  class="inline-flex items-center gap-2 rounded-lg bg-black px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-black/80"
+                >
+                  เปิดใช้งานแอพ (:3001)
+                  <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none">
+                    <path d="M4 12L12 4M6 4h6v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </a>
+
+                <button
+                  type="button"
+                  onclick="selectDocTab('assignment-1')"
+                  class="inline-flex items-center gap-2 rounded-lg border border-black/20 bg-transparent px-3.5 py-2.5 text-xs font-medium text-black hover:bg-black/5 transition cursor-pointer"
+                >
+                  อ่านเอกสาร README
+                </button>
+              </div>
+
+            </div>
+
+
+            <!-- Features -->
+
+            <div class="md:col-span-4">
+
+              <div class="grid gap-2 text-xs text-black/55">
+
+                <div
+                  class="border-b border-black/10 pb-2"
+                >
+                  Rule-based / Regex Parser
+                </div>
+
+                <div
+                  class="border-b border-black/10 pb-2"
+                >
+                  Thai Date & Time Extraction
+                </div>
+
+                <div
+                  class="border-b border-black/10 pb-2"
+                >
+                  Confidence Scoring
+                </div>
+
+                <div
+                  class="border-b border-black/10 pb-2"
+                >
+                  Hono · HTMX · Tailwind
+                </div>
+
+                <div>
+                  40 Unit Tests / 100% Passing
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- Arrow -->
+
+            <div
+              class="flex items-start justify-between md:col-span-1 md:justify-end"
+            >
+
+              <span
+                class="mono text-[10px] text-black/45 md:hidden"
+              >
+                localhost:3001
+              </span>
+
+              <a href="http://localhost:3001" class="hover:translate-x-1 hover:-translate-y-1 transition-transform">
+                <svg
+                  class="arrow h-7 w-7 sm:h-9 sm:w-9"
+                  viewBox="0 0 32 32"
+                  fill="none"
+                >
+                  <path
+                    d="M8 24L24 8M11 8h13v13"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </a>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- ================================================== -->
+        <!-- ASSIGNMENT 2 -->
+        <!-- ================================================== -->
+
+        <div class="py-8 sm:py-10">
+
+          <div
+            class="grid grid-cols-1 gap-8 md:grid-cols-12 md:items-start"
+          >
+
+            <!-- Number -->
+
+            <div class="md:col-span-1">
+
+              <span
+                class="mono text-xs text-black/45"
+              >
+                02
+              </span>
+
+            </div>
+
+
+            <!-- Main -->
+
+            <div class="md:col-span-6">
+
+              <div
+                class="mb-3 flex flex-wrap items-center gap-3"
+              >
+
+                <span
+                  class="mono text-[9px] uppercase tracking-[0.14em] text-black/45"
+                >
+                  Assignment 2
+                </span>
+
+                <span
+                  class="rounded-full border border-black/25 px-2.5 py-1 text-[9px] font-medium uppercase tracking-wide"
+                >
+                  Bonus
+                </span>
+
+              </div>
+
+
+              <a
+                href="http://localhost:3002"
+                class="project-title block text-3xl font-semibold leading-none tracking-[-0.055em] sm:text-5xl lg:text-6xl hover:opacity-60 transition-opacity"
+              >
+                Memory Layer
+              </a>
+
+
+              <p
+                class="mt-5 max-w-xl text-sm leading-6 text-black/55"
+              >
+                Personalized expense memory ที่เรียนรู้จาก transaction
+                history ของผู้ใช้โดยอัตโนมัติ และนำ pattern
+                ที่เรียนรู้กลับมาใช้กับรายการใหม่.
+              </p>
+
+              <!-- Action Links -->
+              <div class="mt-6 flex flex-wrap items-center gap-3">
+                <a
+                  href="http://localhost:3002"
+                  class="inline-flex items-center gap-2 rounded-lg bg-black px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-black/80"
+                >
+                  เปิดใช้งานแอพ (:3002)
+                  <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none">
+                    <path d="M4 12L12 4M6 4h6v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </a>
+
+                <button
+                  type="button"
+                  onclick="selectDocTab('assignment-2')"
+                  class="inline-flex items-center gap-2 rounded-lg border border-black/20 bg-transparent px-3.5 py-2.5 text-xs font-medium text-black hover:bg-black/5 transition cursor-pointer"
+                >
+                  อ่านเอกสาร README
+                </button>
+              </div>
+
+            </div>
+
+
+            <!-- Features -->
+
+            <div class="md:col-span-4">
+
+              <div class="grid gap-2 text-xs text-black/55">
+
+                <div
+                  class="border-b border-black/10 pb-2"
+                >
+                  MongoDB Aggregation
+                </div>
+
+                <div
+                  class="border-b border-black/10 pb-2"
+                >
+                  Multi-user Isolation
+                </div>
+
+                <div
+                  class="border-b border-black/10 pb-2"
+                >
+                  Majority Voting
+                </div>
+
+                <div
+                  class="border-b border-black/10 pb-2"
+                >
+                  Recency Tie-breaker
+                </div>
+
+                <div>
+                  49 Unit Tests / 100% Passing
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- Arrow -->
+
+            <div
+              class="flex items-start justify-between md:col-span-1 md:justify-end"
+            >
+
+              <span
+                class="mono text-[10px] text-black/45 md:hidden"
+              >
+                localhost:3002
+              </span>
+
+              <a href="http://localhost:3002" class="hover:translate-x-1 hover:-translate-y-1 transition-transform">
+                <svg
+                  class="arrow h-7 w-7 sm:h-9 sm:w-9"
+                  viewBox="0 0 32 32"
+                  fill="none"
+                >
+                  <path
+                    d="M8 24L24 8M11 8h13v13"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </a>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ====================================================== -->
+      <!-- INFRASTRUCTURE -->
+      <!-- ====================================================== -->
+
+      <section
+        class="border-b border-black/15 py-14 sm:py-20"
+      >
+
+        <div
+          class="grid grid-cols-1 gap-12 md:grid-cols-12"
+        >
+
+          <!-- Title -->
+
+          <div class="md:col-span-4">
+
+            <span
+              class="mono text-[10px] uppercase tracking-[0.15em] text-black/45"
+            >
+              02 / Infrastructure
+            </span>
+
+            <h2
+              class="mt-3 text-3xl font-semibold tracking-[-0.055em] sm:text-4xl"
+            >
+              Local Stack
+            </h2>
+
+          </div>
+
+
+          <!-- Content -->
+
+          <div class="md:col-span-8">
+
+
+            <!-- DbGate -->
+
+            <a
+              href="http://localhost:3003"
+              class="group grid grid-cols-[1fr_auto] items-center gap-6 border-t border-black/15 py-5"
+            >
+
+              <div>
+
+                <div
+                  class="flex flex-wrap items-center gap-3"
+                >
+
+                  <h3
+                    class="text-sm font-medium"
+                  >
+                    DbGate Web GUI
+                  </h3>
+
+                  <span
+                    class="mono text-[9px] text-black/40"
+                  >
+                    :3003
+                  </span>
+
+                </div>
+
+
+                <p
+                  class="mt-1 text-xs leading-5 text-black/45"
+                >
+                  MongoDB database viewer สำหรับ transactions,
+                  users, user_settings และ indexes.
+                </p>
+
+              </div>
+
+
+              <svg
+                class="arrow h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="none"
+              >
+                <path
+                  d="M5 15L15 5M7 5h8v8"
+                  stroke="currentColor"
+                  stroke-width="1.2"
+                />
+              </svg>
+
+            </a>
+
+
+            <!-- Assignment 1 Tests -->
+
+            <div
+              class="grid border-t border-black/15 py-5 sm:grid-cols-[180px_1fr]"
+            >
+
+              <span
+                class="mono mb-2 text-[9px] uppercase tracking-wider text-black/40 sm:mb-0"
+              >
+                Assignment 01 tests
+              </span>
+
+              <code
+                class="mono text-xs"
+              >
+                cd assignment-1 && bun test
+              </code>
+
+            </div>
+
+
+            <!-- Assignment 2 Tests -->
+
+            <div
+              class="grid border-t border-black/15 py-5 sm:grid-cols-[180px_1fr]"
+            >
+
+              <span
+                class="mono mb-2 text-[9px] uppercase tracking-wider text-black/40 sm:mb-0"
+              >
+                Assignment 02 tests
+              </span>
+
+              <code
+                class="mono text-xs"
+              >
+                cd assignment-2 && bun test
+              </code>
+
+            </div>
+
+
+            <!-- Docker -->
+
+            <div
+              class="grid border-y border-black/15 py-5 sm:grid-cols-[180px_1fr]"
+            >
+
+              <span
+                class="mono mb-2 text-[9px] uppercase tracking-wider text-black/40 sm:mb-0"
+              >
+                Docker logs
+              </span>
+
+              <code
+                class="mono text-xs"
+              >
+                docker compose logs -f
+              </code>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ====================================================== -->
+      <!-- DOCUMENTATION VIEWER SECTION -->
+      <!-- ====================================================== -->
+
+      <section
+        id="documentation"
+        class="border-b border-black/15 py-14 sm:py-20"
+      >
+
+        <div class="flex flex-col gap-8">
+
+          <!-- Section Header -->
+          <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-black/15 pb-5">
+            <div>
+              <span class="mono text-[10px] uppercase tracking-[0.15em] text-black/45">
+                03 / Documentation
+              </span>
+              <h2 class="mt-2 text-3xl font-semibold tracking-[-0.055em] sm:text-4xl">
+                Project Documentation & Specs
+              </h2>
+              <p class="mt-2 text-xs text-black/55 max-w-2xl">
+                อ่านเอกสารสรุปภาพรวม สถาปัตยกรรมระบบ Trade-offs และวิธีทดสอบของแต่ละ Assignment ได้โดยตรง
+              </p>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="flex flex-wrap items-center gap-2 self-start sm:self-end">
+              <button
+                type="button"
+                id="tab-btn-root"
+                onclick="selectDocTab('root')"
+                class="doc-tab-btn active mono text-xs px-3.5 py-2 rounded-lg border border-black/20 font-medium transition cursor-pointer"
+              >
+                Main Overview
+              </button>
+              <button
+                type="button"
+                id="tab-btn-assignment-1"
+                onclick="selectDocTab('assignment-1')"
+                class="doc-tab-btn mono text-xs px-3.5 py-2 rounded-lg border border-black/20 font-medium transition cursor-pointer text-black/70 hover:text-black hover:bg-black/5"
+              >
+                Assignment 1 Specs
+              </button>
+              <button
+                type="button"
+                id="tab-btn-assignment-2"
+                onclick="selectDocTab('assignment-2')"
+                class="doc-tab-btn mono text-xs px-3.5 py-2 rounded-lg border border-black/20 font-medium transition cursor-pointer text-black/70 hover:text-black hover:bg-black/5"
+              >
+                Assignment 2 Specs
+              </button>
+            </div>
+          </div>
+
+          <!-- Document Container -->
+          <div class="rounded-2xl border border-black/15 bg-white p-6 sm:p-10 shadow-sm">
+            
+            <!-- Document Meta Bar -->
+            <div class="flex items-center justify-between border-b border-black/10 pb-4 mb-6 text-xs text-black/50 mono">
+              <div class="flex items-center gap-2">
+                <span class="inline-block h-2 w-2 rounded-full bg-emerald-500"></span>
+                <span id="doc-meta-path">/README.md</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  onclick="copyCurrentDocMarkdown()"
+                  class="hover:text-black underline underline-offset-2 transition cursor-pointer"
+                >
+                  Copy Markdown
+                </button>
+              </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="doc-loading" class="py-12 text-center text-xs text-black/40 mono">
+              กำลังโหลดเอกสาร...
+            </div>
+
+            <!-- Markdown Render Target -->
+            <article id="doc-content" class="markdown-body hidden"></article>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ====================================================== -->
+      <!-- TECHNOLOGIES -->
+      <!-- ====================================================== -->
+
+      <section
+        class="border-b border-black/15 py-14 sm:py-20"
+      >
+
+        <div
+          class="grid grid-cols-1 gap-12 md:grid-cols-12"
+        >
+
+          <!-- Heading -->
+
+          <div class="md:col-span-4">
+
+            <span
+              class="mono text-[10px] uppercase tracking-[0.15em] text-black/45"
+            >
+              04 / Stack
+            </span>
+
+            <h2
+              class="mt-3 text-3xl font-semibold tracking-[-0.055em] sm:text-4xl"
+            >
+              Technologies.
+            </h2>
+
+            <p
+              class="mt-4 max-w-xs text-xs leading-5 text-black/45"
+            >
+              Core technologies used across both assignments
+              and the local development environment.
+            </p>
+
+          </div>
+
+
+          <!-- Technologies Grid -->
+
+          <div
+            class="grid grid-cols-2 gap-x-8 md:col-span-8 md:grid-cols-3"
+          >
+
+
+            <!-- ================= BUN ================= -->
+
+            <div
+              class="tech-item group border-t border-black/15 py-5"
+            >
+
+              <div
+                class="flex items-start justify-between"
+              >
+
+                <img
+                  src="https://cdn.simpleicons.org/bun/000000"
+                  alt="Bun"
+                  loading="lazy"
+                  class="tech-logo h-9 w-9 object-contain"
+                />
+
+                <span
+                  class="mono text-[9px] text-black/30"
+                >
+                  01
+                </span>
+
+              </div>
+
+              <div
+                class="mt-7 text-sm font-medium"
+              >
+                Bun
+              </div>
+
+            </div>
+
+
+            <!-- ================= TYPESCRIPT ================= -->
+
+            <div
+              class="tech-item group border-t border-black/15 py-5"
+            >
+
+              <div
+                class="flex items-start justify-between"
+              >
+
+                <img
+                  src="https://cdn.simpleicons.org/typescript/3178C6"
+                  alt="TypeScript"
+                  loading="lazy"
+                  class="tech-logo h-9 w-9 object-contain"
+                />
+
+                <span
+                  class="mono text-[9px] text-black/30"
+                >
+                  02
+                </span>
+
+              </div>
+
+              <div
+                class="mt-7 text-sm font-medium"
+              >
+                TypeScript
+              </div>
+
+            </div>
+
+
+            <!-- ================= HONO ================= -->
+
+            <div
+              class="tech-item group border-t border-black/15 py-5"
+            >
+
+              <div
+                class="flex items-start justify-between"
+              >
+
+                <img
+                  src="https://cdn.simpleicons.org/hono/E36002"
+                  alt="Hono"
+                  loading="lazy"
+                  class="tech-logo h-9 w-9 object-contain"
+                />
+
+                <span
+                  class="mono text-[9px] text-black/30"
+                >
+                  03
+                </span>
+
+              </div>
+
+              <div
+                class="mt-7 text-sm font-medium"
+              >
+                Hono
+              </div>
+
+            </div>
+
+
+            <!-- ================= HTMX ================= -->
+
+            <div
+              class="tech-item group border-t border-black/15 py-5"
+            >
+
+              <div
+                class="flex items-start justify-between"
+              >
+
+                <img
+                  src="https://cdn.simpleicons.org/htmx/3366CC"
+                  alt="HTMX"
+                  loading="lazy"
+                  class="tech-logo h-9 w-9 object-contain"
+                />
+
+                <span
+                  class="mono text-[9px] text-black/30"
+                >
+                  04
+                </span>
+
+              </div>
+
+              <div
+                class="mt-7 text-sm font-medium"
+              >
+                HTMX
+              </div>
+
+            </div>
+
+
+            <!-- ================= MONGODB ================= -->
+
+            <div
+              class="tech-item group border-t border-black/15 py-5"
+            >
+
+              <div
+                class="flex items-start justify-between"
+              >
+
+                <img
+                  src="https://cdn.simpleicons.org/mongodb/47A248"
+                  alt="MongoDB"
+                  loading="lazy"
+                  class="tech-logo h-9 w-9 object-contain"
+                />
+
+                <span
+                  class="mono text-[9px] text-black/30"
+                >
+                  05
+                </span>
+
+              </div>
+
+              <div
+                class="mt-7 text-sm font-medium"
+              >
+                MongoDB
+              </div>
+
+            </div>
+
+
+            <!-- ================= DOCKER ================= -->
+
+            <div
+              class="tech-item group border-t border-black/15 py-5"
+            >
+
+              <div
+                class="flex items-start justify-between"
+              >
+
+                <img
+                  src="https://cdn.simpleicons.org/docker/2496ED"
+                  alt="Docker"
+                  loading="lazy"
+                  class="tech-logo h-9 w-9 object-contain"
+                />
+
+                <span
+                  class="mono text-[9px] text-black/30"
+                >
+                  06
+                </span>
+
+              </div>
+
+              <div
+                class="mt-7 text-sm font-medium"
+              >
+                Docker
+              </div>
+
+            </div>
+
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+    </main>
+
+
+    <!-- ====================================================== -->
+    <!-- FOOTER -->
+    <!-- ====================================================== -->
+
+    <footer
+      class="mx-auto grid max-w-[1500px] grid-cols-1 gap-8 py-8 sm:grid-cols-2 sm:items-end"
+    >
+
+      <div>
+
+        <div
+          class="text-3xl font-semibold tracking-[-0.06em]"
+        >
+          NT.
+        </div>
+
+        <p
+          class="mt-2 text-xs leading-5 text-black/45"
+        >
+          Parnuan Software Engineer Intern
+          <br />
+          Take-Home Submission
+        </p>
+
+      </div>
+
+
+      <div class="sm:text-right">
+
+        <div
+          class="mono text-[9px] uppercase tracking-[0.12em] text-black/40"
+        >
+          Contact
+        </div>
+
+        <a
+          href="mailto:0ms.ntdotjsx@gmail.com"
+          class="mt-1 inline-block text-xs font-medium underline decoration-black/20 underline-offset-4 transition hover:decoration-black"
+        >
+          0ms.ntdotjsx@gmail.com
+        </a>
+
+        <div
+          class="mono mt-5 text-[9px] uppercase tracking-[0.12em] text-black/30"
+        >
+          © 2026 NTDOTJSX
+        </div>
+
+      </div>
+
+    </footer>
+
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="copy-toast" class="fixed bottom-6 right-6 bg-black text-white text-xs px-4 py-2.5 rounded-lg mono shadow-xl opacity-0 transition-opacity duration-200 pointer-events-none z-50">
+    Copied to clipboard
+  </div>
+
+  <!-- Documentation Engine Script -->
+  <script>
+    // Initialize Mermaid.js
+    if (typeof mermaid !== 'undefined') {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'neutral',
+        themeVariables: {
+          fontFamily: 'Prompt, sans-serif',
+          fontSize: '13px',
+          primaryColor: '#ffffff',
+          primaryTextColor: '#101010',
+          primaryBorderColor: '#101010',
+          lineColor: '#101010',
+          secondaryColor: '#f4f4ef',
+          tertiaryColor: '#ffffff',
+          mainBkg: '#ffffff',
+          nodeBorder: '#101010',
+          clusterBkg: '#f8f8f6',
+          clusterBorder: '#d0d0cc',
+          edgeLabelBackground: '#ffffff'
+        },
+        securityLevel: 'loose'
+      });
+    }
+
+    const docConfig = {
+      'root': {
+        path: '/docs/root-readme.md',
+        basePath: '/docs/',
+        displayPath: '/README.md',
+        btnId: 'tab-btn-root'
+      },
+      'assignment-1': {
+        path: '/docs/assignment-1/README.md',
+        basePath: '/docs/assignment-1/',
+        displayPath: '/assignment-1/README.md',
+        btnId: 'tab-btn-assignment-1'
+      },
+      'assignment-2': {
+        path: '/docs/assignment-2/README.md',
+        basePath: '/docs/assignment-2/',
+        displayPath: '/assignment-2/README.md',
+        btnId: 'tab-btn-assignment-2'
+      }
+    };
+
+    let currentDocKey = 'root';
+    let currentRawMarkdown = '';
+    const docCache = {};
+
+    function showToast(text) {
+      const toast = document.getElementById('copy-toast');
+      if (toast) {
+        toast.textContent = text;
+        toast.classList.remove('opacity-0');
+        setTimeout(() => toast.classList.add('opacity-0'), 2000);
+      }
+    }
+
+    window.copyCurrentDocMarkdown = function() {
+      if (currentRawMarkdown) {
+        navigator.clipboard.writeText(currentRawMarkdown).then(() => {
+          showToast('Copied full Markdown to clipboard');
+        });
+      }
+    };
+
+    window.copyCodeSnippet = function(encodedCode) {
+      const code = decodeURIComponent(encodedCode);
+      navigator.clipboard.writeText(code).then(() => {
+        showToast('Code copied');
+      });
+    };
+
+    // Global Marked Configuration with universal Mermaid & Token support
+    if (typeof marked !== 'undefined') {
+      marked.use({
+        gfm: true,
+        breaks: true,
+        renderer: {
+          code(token, maybeLang) {
+            const code = (typeof token === 'object' && token !== null ? token.text : (token || '')).trim();
+            const rawLang = (typeof token === 'object' && token !== null ? (token.lang || '') : (maybeLang || '')).trim().toLowerCase();
+
+            // Detect any Mermaid block (via tag or code prefix)
+            const isMermaid = rawLang === 'mermaid' || 
+                              rawLang.includes('mermaid') || 
+                              code.startsWith('flowchart') || 
+                              code.startsWith('sequenceDiagram') || 
+                              code.startsWith('graph ') || 
+                              code.startsWith('classDiagram') || 
+                              code.startsWith('stateDiagram') || 
+                              code.startsWith('erDiagram');
+
+            if (isMermaid) {
+              const encoded = encodeURIComponent(code);
+              const diagramType = code.startsWith('sequenceDiagram') ? 'SEQUENCE DIAGRAM' : 'FLOWCHART DIAGRAM';
+              return `<div class="mermaid-container my-8 p-6 sm:p-8 rounded-2xl border border-black/15 bg-white shadow-sm flex flex-col items-center justify-center overflow-x-auto" data-mermaid-code="${encoded}">
+                <div class="w-full flex items-center justify-between border-b border-black/10 pb-3 mb-4 text-[10px] mono text-black/40">
+                  <span>${diagramType}</span>
+                  <span class="text-black/30">Mermaid SVG</span>
+                </div>
+                <div class="mermaid-render-area w-full flex justify-center py-2">
+                  <div class="text-xs text-black/40 mono py-4">กำลังวาดแผนภาพ Mermaid...</div>
+                </div>
+              </div>`;
+            }
+
+            // Normal code highlighting
+            let highlighted = code;
+            if (typeof hljs !== 'undefined') {
+              try {
+                const validLang = (rawLang && hljs.getLanguage(rawLang)) ? rawLang : 'plaintext';
+                highlighted = hljs.highlight(code, { language: validLang }).value;
+              } catch (e) {
+                highlighted = code;
+              }
+            }
+
+            const encoded = encodeURIComponent(code);
+            return `<div class="my-5 rounded-xl border border-black/15 overflow-hidden bg-[#161618] text-white shadow-sm">
+              <div class="flex items-center justify-between px-4 py-2 bg-black/40 border-b border-white/10 text-[10px] mono text-white/50">
+                <span>${(rawLang || 'CODE').toUpperCase()}</span>
+                <button type="button" onclick="copyCodeSnippet('${encoded}')" class="hover:text-white transition-colors cursor-pointer">Copy</button>
+              </div>
+              <pre class="p-4 overflow-x-auto text-xs leading-relaxed mono"><code>${highlighted}</code></pre>
+            </div>`;
+          },
+
+          image(token, maybeTitle, maybeText) {
+            let href = '', title = '', text = '';
+            if (typeof token === 'object' && token !== null) {
+              href = token.href || '';
+              title = token.title || '';
+              text = token.text || '';
+            } else {
+              href = token || '';
+              title = maybeTitle || '';
+              text = maybeText || '';
+            }
+
+            let src = href;
+            const currentConfig = docConfig[currentDocKey];
+            const basePath = currentConfig ? currentConfig.basePath : '/docs/';
+
+            if (src && !src.startsWith('http') && !src.startsWith('/') && !src.startsWith('data:')) {
+              src = basePath + src;
+            }
+
+            return `<figure class="my-6 text-center">
+              <img src="${src}" alt="${text || ''}" class="mx-auto rounded-xl border border-black/15 max-w-full shadow-sm" loading="lazy" />
+              ${text ? `<figcaption class="mt-2 text-xs text-black/50 mono">${text}</figcaption>` : ''}
+            </figure>`;
+          }
+        }
+      });
+    }
+
+    async function renderMermaidInElement(contentEl) {
+      if (!contentEl) return;
+      const mermaidContainers = contentEl.querySelectorAll('.mermaid-container');
+
+      for (let i = 0; i < mermaidContainers.length; i++) {
+        const container = mermaidContainers[i];
+        const renderArea = container.querySelector('.mermaid-render-area') || container;
+        const rawCode = decodeURIComponent(container.getAttribute('data-mermaid-code') || '').trim();
+        if (!rawCode) continue;
+
+        const svgId = 'mermaid-svg-' + i + '-' + Math.random().toString(36).substring(2, 8);
+        try {
+          if (typeof mermaid !== 'undefined') {
+            const result = await mermaid.render(svgId, rawCode);
+            renderArea.innerHTML = result.svg;
+            const svgEl = renderArea.querySelector('svg');
+            if (svgEl) {
+              svgEl.style.maxWidth = '100%';
+              svgEl.style.height = 'auto';
+              svgEl.style.display = 'block';
+              svgEl.style.margin = '0 auto';
+            }
+          }
+        } catch (err) {
+          console.error('Mermaid render error for diagram ' + i + ':', err);
+          const errEl = document.getElementById('d' + svgId);
+          if (errEl) errEl.remove();
+
+          renderArea.innerHTML = `<div class="w-full text-left">
+            <pre class="text-xs mono p-4 bg-black/5 rounded-xl overflow-x-auto text-black/80"><code>${rawCode.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>
+          </div>`;
+        }
+      }
+    }
+
+    async function fetchAndRenderDoc(key) {
+      const config = docConfig[key];
+      if (!config) return;
+
+      currentDocKey = key;
+      const metaPath = document.getElementById('doc-meta-path');
+      const loadingEl = document.getElementById('doc-loading');
+      const contentEl = document.getElementById('doc-content');
+
+      if (metaPath) metaPath.textContent = config.displayPath;
+      if (loadingEl) {
+        loadingEl.innerHTML = 'กำลังโหลดเอกสาร...';
+        loadingEl.classList.remove('hidden');
+      }
+      if (contentEl) {
+        contentEl.classList.add('hidden');
+        contentEl.innerHTML = '';
+      }
+
+      try {
+        let markdown = docCache[key];
+        if (!markdown) {
+          const res = await fetch(config.path + '?v=' + Date.now());
+          if (!res.ok) throw new Error('HTTP ' + res.status + ': Failed to load documentation');
+          markdown = await res.text();
+          docCache[key] = markdown;
+        }
+
+        currentRawMarkdown = markdown;
+
+        const html = marked.parse(markdown);
+        if (contentEl) {
+          contentEl.innerHTML = html;
+          contentEl.classList.remove('hidden');
+        }
+        if (loadingEl) loadingEl.classList.add('hidden');
+
+        // Render all Mermaid diagrams
+        await renderMermaidInElement(contentEl);
+
+      } catch (err) {
+        if (loadingEl) {
+          loadingEl.innerHTML = `<span class="text-red-500">ไม่สามารถโหลดเอกสารได้ (${err.message})</span>`;
+        }
+      }
+    }
+
+    window.selectDocTab = function(key) {
+      document.querySelectorAll('.doc-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.classList.add('text-black/70', 'hover:text-black', 'hover:bg-black/5');
+      });
+
+      const config = docConfig[key];
+      if (config) {
+        const btn = document.getElementById(config.btnId);
+        if (btn) {
+          btn.classList.add('active');
+          btn.classList.remove('text-black/70', 'hover:text-black', 'hover:bg-black/5');
+        }
+      }
+
+      fetchAndRenderDoc(key);
+
+      // Smooth scroll if triggered from assignment card
+      const docSection = document.getElementById('documentation');
+      if (docSection && window.scrollY < docSection.offsetTop - 200) {
+        docSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    };
+
+    // Initial Load
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchAndRenderDoc('root');
+    });
+  </script>
+
+</body>
+</html>
