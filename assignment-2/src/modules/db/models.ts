@@ -38,3 +38,14 @@ export interface MemoryInsight {
     confidence: number         // คะแนนความมั่นใจที่คำนวณได้ (0.0 - 1.0)
     lastUsedAt: Date           // เวลาล่าสุดที่ใช้หมวดนี้
 }
+
+/**
+ * โครงสร้างข้อมูลผู้ใช้ (Collection: users)
+ */
+export interface UserDoc {
+    id: string            // เช่น "user_somchai", "user_somying"
+    name: string          // เช่น "สมชาย (สายกิน)", "สมหญิง (ชอบช้อปปิ้ง)"
+    avatar?: string
+    createdAt: Date
+    updatedAt: Date
+}

@@ -1,11 +1,19 @@
-import { MongoClient, type Db } from 'mongodb'
+import type { Db, MongoClient as MongoClientType } from 'mongodb'
 import type { TransactionDoc, UserSettingsDoc } from './models'
 
-// กำหนดค่า Configuration พร้อมค่า Default ที่ปลอดภัย
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017'
-const DB_NAME = process.env.MONGODB_DB_NAME || 'error'
+// Polyfill แก้ไขปัญหา Bun กับ bson/node:v8
+if (typeof globalThis.process?.getBuiltinModule === 'function') {
+    const origGetBuiltin = globalThis.process.getBuiltinModule.bind(globalThis.process)
+    globalThis.process.getBuiltinModule = (name: string) => {
+        if (name === 'v8') return {}
+        return origGetBuiltin(name)
+    }
+}
 
-let client: MongoClient | null = null
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017'
+const DB_NAME = process.env.MONGODB_DB_NAME || 'parnuan'
+
+let client: MongoClientType | null = null
 let db: Db | null = null
 let connectionPromise: Promise<Db> | null = null
 
@@ -18,12 +26,14 @@ export async function connectDb(): Promise<Db> {
 
     connectionPromise = (async () => {
         try {
-            // ตั้งค่า Connection Pool Options ให้เหมาะสม
+            // โหลด MongoClient ผ่าน dynamic import หลังจาก Shim ทำงานแล้ว
+            const { MongoClient } = await import('mongodb')
+
             client = new MongoClient(MONGODB_URI, {
-                maxPoolSize: 10,                 // จำนวน Connection สูงสุดใน Pool
-                minPoolSize: 2,                  // จำนวน Connection สำรองไว้เสมอ
-                serverSelectionTimeoutMS: 5000,  // Timeout ถ้าหา Server ไม่เจอใน 5 วินาที
-                connectTimeoutMS: 10000,         // Timeout การเชื่อมต่อเริ่มต้น
+                maxPoolSize: 10,
+                minPoolSize: 2,
+                serverSelectionTimeoutMS: 5000,
+                connectTimeoutMS: 10000,
             })
 
             await client.connect()
@@ -35,8 +45,7 @@ export async function connectDb(): Promise<Db> {
 
             return db
         } catch (error) {
-            console.error('MongoDB] Connection failed:', error)
-            // รีเซ็ตสถานะเพื่อให้ลองเชื่อมต่อใหม่ได้ในรอบถัดไป
+            console.error('[MongoDB] Connection failed:', error)
             client = null
             db = null
             connectionPromise = null
@@ -79,13 +88,12 @@ async function initIndexes(database: Db): Promise<void> {
         await Promise.all([
             // Index สำหรับ Query Memory ด้วย userId + normalizedKey
             transactions.createIndex({ userId: 1, normalizedKey: 1 }),
-            // Index สำหรับเรียงลำดับเวลา (Recency)
+            // Index สำหรับ Query Memory ด้วย
             transactions.createIndex({ userId: 1, updatedAt: -1 }),
             // Unique Index สำหรับการตั้งค่าผู้ใช้
             userSettings.createIndex({ userId: 1 }, { unique: true }),
         ])
-
-        console.log('MongoDB] Indexes initialized successfully.')
+        console.log('[MongoDB] Indexes initialized successfully.')
     } catch (error) {
         console.warn('MongoDB] Index initialization warning:', error)
     }
@@ -113,7 +121,7 @@ export async function closeDb(): Promise<void> {
         client = null
         db = null
         connectionPromise = null
-        console.log('MongoDB] Connection pool closed.')
+        console.log('[MongoDB] Connection pool closed.')
     }
 }
 

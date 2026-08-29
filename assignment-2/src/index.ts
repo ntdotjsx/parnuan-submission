@@ -3,6 +3,16 @@ import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/bun'
 import { apiRouter } from './routes/api'
 import { uiRouter } from './routes/ui'
+import { connectDb } from './modules/db'
+import { seedUsersIfEmpty } from './modules/db/seed'
+
+await connectDb().catch((err) => {
+  console.error('Failed to connect to MongoDB on startup:', err)
+})
+
+await seedUsersIfEmpty().catch(() => {
+  console.error('Failed MoxkData')
+})
 
 const app = new Hono()
 

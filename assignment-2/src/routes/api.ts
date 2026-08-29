@@ -1,6 +1,10 @@
 import { Hono } from 'hono'
 import { parseTransactions } from '../modules/parser/transaction'
 import { rateLimiter } from '../middlewares/rate-limit'
+import {
+    setMemoryEnabled,
+    // isMemoryEnabled,
+} from '../modules/memory/service'
 
 export const apiRouter = new Hono()
 
@@ -42,4 +46,28 @@ apiRouter.post('/parse', rateLimiter({ windowMs: 60_000, max: 30 }), async (c) =
 
     const transactions = parseTransactions(body.text)
     return c.json({ transactions })
+})
+
+/**
+ * /api/settings/memory
+ * สลับการตั้งค่า เปิด/ปิด การจัดหมวดด้วยความจำ
+ */
+apiRouter.post('/settings/memory', async (c) => {
+    let body: { userId?: string; enabled?: boolean }
+    try {
+        body = await c.req.json()
+    } catch {
+        return c.json({ error: 'Invalid JSON body' }, 400)
+    }
+    const userId = body.userId?.trim() || c.req.header('x-user-id') || 'default-user'
+    if (typeof body.enabled !== 'boolean') {
+        return c.json({ error: 'enabled must be a boolean (true or false)' }, 400)
+    }
+    await setMemoryEnabled(userId, body.enabled)
+    return c.json({
+        success: true,
+        userId,
+        memoryEnabled: body.enabled,
+        message: body.enabled ? 'จัดหมวดด้วยความจำ: เปิดใช้งานแล้ว' : 'จัดหมวดด้วยความจำ: ปิดใช้งานแล้ว',
+    })
 })
