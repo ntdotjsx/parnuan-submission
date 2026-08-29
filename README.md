@@ -42,25 +42,31 @@
 
 ## เส้นทางและโครงสร้างโปรเจกต์ (Assignments Navigation)
 
-Repository นี้แบ่งออกเป็น 2 Assignments หลักตามโครงสร้างที่กำหนด:
+Repository นี้แบ่งออกเป็น 2 Assignments หลักพร้อม Landing Hub สำหรับการตรวจสอบ:
 
 ```text
 parnuan-submission/
 ├── assignment-1/               # [Required] Text -> Transaction Flow
 │   ├── src/                    # Parser engine, Date extractor, Web UI routes
+│   │   └── tests/              # Unit tests (40 tests, 68 assertions)
 │   ├── static/                 # Styles & assets
-│   ├── tests/ (or *.test.ts)   # Unit tests (40 tests)
 │   ├── ASSIGNMENT.md           # เอกสารโจทย์ Assignment 1
+│   ├── Dockerfile              # Docker container spec สำหรับ Assignment 1
 │   └── README.md               # เอกสารสรุปเชิงลึกของ Assignment 1
 │
 ├── assignment-2/               # [Bonus] Memory / Learn from Corrections
 │   ├── src/                    # Memory engine, MongoDB models, Dashboard UI
+│   │   └── tests/              # Unit tests (64 tests, 177 assertions)
 │   ├── static/                 # Assets & icons
-│   ├── tests/ (or *.test.ts)   # Unit tests (64 tests)
 │   ├── ASSIGNMENT.md           # เอกสารโจทย์ Assignment 2
+│   ├── Dockerfile              # Docker container spec สำหรับ Assignment 2
 │   └── README.md               # เอกสารสรุปเชิงลึกของ Assignment 2
 │
-├── docker-compose.yml          # Docker service สำหรับ MongoDB & DbGate (ใช้ใน Assignment 2)
+├── portal/                     # [Landing Hub] Submission launcher & live docs viewer
+│   ├── Dockerfile              # Nginx web server container spec
+│   └── index.html              # Swiss-minimalist portal UI & documentation reader
+│
+├── docker-compose.yml          # Orchestration สำหรับทุก Service (Portal, Apps, DB, DbGate)
 └── README.md                   # เอกสารภาพรวมหลัก (หน้านี้)
 ```
 
@@ -101,7 +107,7 @@ parnuan-submission/
 | **Web Server** | [Hono](https://hono.dev/) | Web Framework ขนาดเล็ก เร็ว เหมาะกับทั้ง REST API และ SSR |
 | **Frontend & UI** | [HTMX](https://htmx.org/) + [Eta](https://eta.js.org/) + [Tailwind CSS](https://tailwindcss.com/) | พัฒนา Dynamic UI ได้รวดเร็ว โค้ดกระชับ ไม่ต้องใช้ Build Pipeline ของ SPA |
 | **Database (Assign 2)** | MongoDB (ผ่าน Docker) | ยืดหยุ่น เหมาะกับการทำ Aggregation Pipeline เพื่อสร้าง Derived View |
-| **Testing** | Bun Test / Vitest | รัน Unit Tests รวมเกือบ 90 tests ได้รวดเร็วระดับมิลลิวินาที |
+| **Testing** | Bun Test | รัน Unit Tests รวมทั้งสิ้น **104 tests (245 assertions)** ได้รวดเร็วระดับมิลลิวินาที (100% Passing) |
 
 ---
 
@@ -141,7 +147,7 @@ docker compose logs -f
 ```bash
 cd assignment-1
 bun install
-bun test          # รัน Unit Tests (40 tests)
+bun test          # รัน Unit Tests (40 tests, 68 assertions)
 bun dev           # เปิดเว็บที่ http://localhost:3000
 ```
 
@@ -153,7 +159,7 @@ docker compose up mongodb -d
 # 2. เข้าโฟลเดอร์ assignment-2
 cd assignment-2
 bun install
-bun test          # รัน Unit Tests (57 tests)
+bun test          # รัน Unit Tests (64 tests, 177 assertions)
 bun dev           # เปิดเว็บที่ http://localhost:3000
 ```
 

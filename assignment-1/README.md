@@ -128,14 +128,29 @@ sequenceDiagram
 
 ## 4. Parsing Strategy (กลยุทธ์การตีความข้อความ)
 
-เลือกใช้แนวทาง **Rule-based & Regex Matching** ผสานกับ **Keyword-based Heuristics**:
+เลือกใช้แนวทาง **Rule-based & Regex Matching** ผสานกับ **Keyword-based Heuristics** โดยแบ่งลำดับการประมวลผลอย่างชัดเจน:
 
-- **Date Extraction (`src/parser/date.ts`):** ใช้ Regex ตรวจจับคำระบุวันเวลา เช่น `เมื่อวานตอน 5 โมงครึ่ง` แล้วคำนวณ Time offset ตามช่วงเวลา (`เช้า`, `บ่าย`, `เย็น`, `ทุ่ม`, `ตี`)
-- **Candidate Splitting (`src/parser/candidate.ts`):** ปรับ Normalize คำเชื่อมภาษาไทย (`และ`, `และก็`, `แล้วก็`) ให้เป็น Delimiter จากนั้นใช้ Regex วนลูปจับกลุ่มข้อความและตัวเลข
+### 1. ทำไมต้องสกัดวันและเวลาก่อน (Date Extraction Before Candidate & Amount Parsing)?
+ข้อความระบุวันเวลาภาษาไทย เช่น *"เมื่อวานตอน 5 โมง"* หรือ *"เมื่อวานตอน 5 โมงครึ่ง"* มีตัวเลขชั่วโมง/นาทีปะปนอยู่ในประโยค หากนำข้อความทั้งหมดไปตัดคำหรือแยกจำนวนเงินก่อน ตัวเลขของเวลา (เช่น เลข `5`) อาจถูก Regex ดักจับผิดพลาดเป็นจำนวนเงินของรายการได้ ระบบจึงเรียก `extractDate()` เป็นขั้นตอนแรกสุดเพื่อ:
+- ดึง Timestamp และคำนวณ Date Confidence / Warning
+- ตัดส่วนของข้อความวันเวลาออกให้เหลือเฉพาะ **`cleanedText`** ที่มีเฉพาะชื่อสินค้าและจำนวนเงินจริงเท่านั้น
+
+### 2. โมดูลและการประมวลผลใน Pipeline:
+- **Date Extraction (`src/parser/date.ts`):** 
+  - ใช้ Regex ตรวจจับรูปแบบ `เมื่อวาน(?:ตอน)?\s*(\d{1,2})\s*โมง(ครึ่ง)?\s*(เช้า|บ่าย|เย็น|ทุ่ม|ตี)?` และ Fallback `เมื่อวาน`
+  - แปลงช่วงเวลาเป็น 24 ชั่วโมง: `เช้า` (+0 ชม.), `บ่าย` (+12 ชม.), `เย็น` (+12 ชม.), `ทุ่ม` (+18 ชม.), `ตี` (+0 ชม.)
+  - ตรวจสอบความถูกต้องของชั่วโมง (1–12) หากอยู่นอกช่วงจะคืนค่าวันเวลาปัจจุบันพร้อม Confidence 0.30 และ Warning
+  - กรณีไม่ระบุช่วงเวลา (เช่น *"5 โมง"* เดี่ยวๆ): ระบบจะใช้ Heuristic คาดเดาเป็นช่วงบ่าย/เย็น (17:00) พร้อมกำหนด Date Confidence เป็น `0.55` และแนบ Warning เตือนให้ผู้ใช้ตรวจทาน
+  - กรณีระบุช่วงเวลาชัดเจน หรือระบุ *"เมื่อวาน"*: Date Confidence เท่ากับ `0.90`
+  - กรณีไม่พบคำระบุเวลา: ใช้วันเวลาปัจจุบัน Date Confidence เท่ากับ `0.70`
+- **Candidate Splitting (`src/parser/candidate.ts`):** ปรับ Normalize คำเชื่อมภาษาไทย (`และ`, `และก็`, `แล้วก็`) ให้เป็น Delimiter จากนั้นใช้ Regex วนลูปจับกลุ่มข้อความและตัวเลข (`description + amount`)
 - **Category Classification (`src/utils/index.ts`):** จับคู่คำใน Description กับพจนานุกรมหมวดหมู่ (`food`, `shopping`, `transport`, `other`) โดยเลือกหมวดที่มีคีย์เวิร์ดตรงมากที่สุด
-- **Confidence Scoring:** คำนวณคะแนนความมั่นใจจาก:
+  - จับคู่ตรง 1 คีย์เวิร์ด: Category Confidence = `0.70`
+  - จับคู่ตรงตั้งแต่ 2 คีย์เวิร์ดขึ้นไป: Category Confidence = `0.90`
+  - ไม่พบคีย์เวิร์ดใดๆ: จัดเข้าหมวด `other` โดยอัตโนมัติ พร้อม Category Confidence = `0.10` และ Warning
+- **Confidence Scoring:** คำนวณคะแนนความมั่นใจโดยรวมจาก:
   $$\text{Confidence} = (\text{Category Confidence} \times 0.7) + (\text{Date Confidence} \times 0.3)$$
-  ให้น้ำหนักกับหมวดหมู่มากกว่า เนื่องจากมีผลต่อความถูกต้องในการจัดประเภทรายจ่าย
+  ให้น้ำหนักกับหมวดหมู่มากกว่า (70%) เนื่องจากมีผลต่อความถูกต้องในการจัดประเภทรายจ่ายโดยตรง ส่วนความไม่แน่นอนด้านเวลาให้น้ำหนัก (30%)
 
 ---
 
@@ -221,15 +236,15 @@ https://app.notion.com/p/Trade-offs-3cbd5ca94d8280538e62d655cbce98e7?source=copy
 ## 11. Setup & Running Instructions
 
 ### ข้อกำหนดเบื้องต้น
-- ติดตั้ง [Bun](https://bun.sh/) (เวอร์ชัน 1.0 ขึ้นไป)
+- ติดตั้ง [Bun](https://bun.sh/) (เวอร์ชัน 1.2 ขึ้นไป) หรือใช้งานผ่าน Docker
 
-### ขั้นตอนการรัน
+### วิธีที่ 1: รันแบบ Standalone ด้วย Bun (Local Development)
 
 ```bash
 # 1. ติดตั้ง Dependencies
 bun install
 
-# 2. รัน Unit Tests ทั้งหมด
+# 2. รัน Unit Tests ทั้งหมด (40 tests, 68 assertions)
 bun test
 
 # 3. รัน Development Server
@@ -237,6 +252,15 @@ bun run dev
 ```
 
 เปิดเว็บเบราว์เซอร์ไปที่: **`http://localhost:3000`**
+
+### วิธีที่ 2: รันผ่าน Docker Compose จาก Root Repository
+
+```bash
+# จาก root repository
+docker compose up assignment-1 -d --build
+```
+
+เปิดเว็บเบราว์เซอร์ไปที่: **`http://localhost:3001`**
 
 ### API Endpoints
 

@@ -125,7 +125,7 @@ interface TransactionDocument {
   amount: number;          // จำนวนเงิน
   categoryId: string;      // รหัสหมวดหมู่ (เช่น food, breakfast, custom_cat)
   categoryTitle: string;   // ชื่อหมวดหมู่ภาษาไทย (เช่น ข้าวเช้า, ช้อปปิ้ง)
-  date: Date;              // วันที่ของธุรกรรม
+  date: string;            // วันที่ของธุรกรรม (ISO 8601 String)
   memoryEligible?: boolean;// มีสิทธิ์นำไปคำนวณความจำหรือไม่ (false เมื่อบันทึกตอน Memory OFF)
   memoryExcluded?: boolean;// ถูกสั่งลืมความจำหรือไม่ (true เมื่อผู้ใช้สั่ง Forget/Clear)
   createdAt: Date;         // เวลาที่บันทึกเข้าระบบ
@@ -765,26 +765,34 @@ interface TransactionConfidence {
 ### สิ่งที่ต้องมีก่อนติดตั้ง (Prerequisites):
 
 * [Bun](https://bun.sh) (v1.2+)
-* [Docker](https://www.docker.com/) & Docker Compose (สำหรับรัน MongoDB)
+* [Docker](https://www.docker.com/) & Docker Compose (สำหรับรัน MongoDB และ Multi-service stack)
 
-### ขั้นตอนการรันระบบ:
+### วิธีที่ 1: รันแบบ Standalone ด้วย Bun (Local Development):
 
 ```bash
-# ติดตั้ง Dependencies
+# 1. ติดตั้ง Dependencies
 bun install
 
-# เริ่มต้นฐานข้อมูล MongoDB ผ่าน Docker Compose
-docker compose up -d
+# 2. เริ่มต้นฐานข้อมูล MongoDB ผ่าน Docker Compose (จาก root directory)
+docker compose up mongodb -d
 
-# รันระบบ Development Server
+# 3. รันระบบ Development Server
 bun dev
 ```
 
-เปิดเบราว์เซอร์ไปที่:
+เปิดเบราว์เซอร์ไปที่: **`http://localhost:3000`**
 
-```text
-http://localhost:3000
+### วิธีที่ 2: รันผ่าน Docker Compose จาก Root Repository
+
+```bash
+# รันทั้งระบบพร้อมกัน (Portal, Assignment 1, Assignment 2, MongoDB, DbGate)
+docker compose up -d --build
 ```
+
+เปิดเบราว์เซอร์ไปที่:
+- **Assignment 2 App:** **`http://localhost:3002`**
+- **DbGate (MongoDB GUI):** **`http://localhost:3003`**
+- **Submission Hub:** **`http://localhost:3000`**
 
 ### การรันชุดทดสอบ (Automated Unit Tests):
 
@@ -792,7 +800,7 @@ http://localhost:3000
 bun test
 ```
 
-*ครอบคลุม 64 เทสต์ 177 assertions ครบทั้ง Candidate, Category, Date, Transaction และ Memory Layers*
+*ครอบคลุม **64 tests (177 assertions)** ครบทั้ง Candidate, Category, Date, Transaction และ Memory Layers (100% Passing)*
 
 Test coverage ถูกแบ่งตาม responsibility หลักของระบบ:
 
