@@ -10,10 +10,9 @@
 2. [Assumptions (สมมติฐานและการออกแบบ)](#2-assumptions)
 3. [Memory Data Model (โครงสร้างข้อมูลความจำ)](#3-memory-data-model)
 4. [Matching Strategy (กลยุทธ์การจับคู่ความจำ)](#4-matching-strategy)
-
-   * [Integration with Assignment 1 Parser & `date.ts`](#41-integration-with-assignment-1-parser--datets)
-   * [Memory Resolution Flow](#42-memory-resolution-flow)
-   * [Confidence Heuristic](#43-การคำนวณคะแนนความมั่นใจ-confidence-heuristic)
+   - [Integration with Assignment 1 Parser & `date.ts`](#41-integration-with-assignment-1-parser--datets)
+   - [Memory Resolution Flow](#42-memory-resolution-flow)
+   - [Confidence Heuristic](#43-การคำนวณคะแนนความมั่นใจ-confidence-heuristic)
 5. [Update & Sync Rules (กฎการซิงค์และอัปเดตความจำ)](#5-update--sync-rules)
 6. [Trust & Transparency (ความโปร่งใสและการควบคุมของผู้ใช้)](#6-trust--transparency)
 7. [Trade-offs (การประเมินข้อดีข้อเสียทางสถาปัตยกรรม)](#7-trade-offs)
@@ -97,13 +96,13 @@ flowchart TD
 
 ### ความหมายของสัญลักษณ์ใน Flowchart
 
-| Symbol      | Flowchart Meaning     | ใช้ในระบบ                   |
-| ----------- | --------------------- | --------------------------- |
-| `([ ... ])` | Terminator            | Start / End                 |
-| `[/ ... /]` | Input / Output        | Input text / Result         |
-| `[ ... ]`   | Process               | Parse, Normalize, Aggregate |
-| `{ ... }`   | Decision              | ตรวจเงื่อนไข                |
-| `[( ... )]` | Database / Data Store | MongoDB                     |
+| Symbol | Flowchart Meaning | ใช้ในระบบ |
+|---|---|---|
+| `([ ... ])` | Terminator | Start / End |
+| `[/ ... /]` | Input / Output | Input text / Result |
+| `[ ... ]` | Process | Parse, Normalize, Aggregate |
+| `{ ... }` | Decision | ตรวจเงื่อนไข |
+| `[( ... )]` | Database / Data Store | MongoDB |
 
 ### เหตุผลทางวิศวกรรม:
 
@@ -599,7 +598,6 @@ Aggregation ครั้งถัดไปจะได้:
 
 * **Inspectable Memory State:** ผู้ใช้สามารถดูรายการคำศัพท์ทั้งหมดที่ระบบเรียนรู้ได้ผ่าน Sidebar บนหน้าเว็บ หรือผ่าน API `GET /api/memory?userId=...` โดยแสดงทั้งจำนวนครั้งที่ใช้ และคะแนนความมั่นใจ
 * **Memory Deletion & Resetting:** ผู้ใช้สามารถควบคุมข้อมูลความจำของตนเองได้เต็มรูปแบบ:
-
   * **ลบเฉพาะคำ:** กดปุ่มถังขยะ `🗑️` ที่การ์ดคำศัพท์ หรือเรียก `DELETE /api/memory?userId=...&keyword=...`
   * **ล้างความจำทั้งหมด:** กดปุ่ม `ล้างทั้งหมด` หรือเรียก `POST /api/memory/clear`
 * **Clear Attribution Badge:** ในหน้าตรวจสอบก่อนบันทึก ระบบจะแสดงป้าย `🧠 [จัดหมวดจากความจำ]` หรือ `⚙️ [จัดหมวดโดยระบบ]` ชัดเจน พร้อมเปอร์เซ็นต์ความมั่นใจ
@@ -625,14 +623,14 @@ Aggregation ครั้งถัดไปจะได้:
 
 ## 7. Trade-offs
 
-| การตัดสินใจ            | สิ่งที่เลือก                          | ข้อดี                                                                           | ข้อเสีย / ข้อจำกัดที่ยอมรับ                                                             |
-| ---------------------- | ------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| **Data Architecture**  | Derived on Read (Aggregation)         | ข้อมูล Consistent 100%, แก้ไข/ลบแล้วซิงค์ทันที ไม่เกิด Stale Memory             | ต้องคำนวณ Query เมื่อเรียกใช้งาน (แก้ไขได้ด้วย Index `{ userId: 1, normalizedKey: 1 }`) |
-| **Matching Engine**    | Normalized Exact Match                | แม่นยำสูง (High Precision), ไม่เดาสุ่มจนผิดพลาด, ทำงานเร็วมาก (< 5ms)           | ไม่รองรับคำพ้องความหมายที่สะกดต่างกันสิ้นเชิง (Semantic Synonyms)                       |
-| **Technology Stack**   | Native MongoDB Driver + Bun           | Native ESM, ปลอดภัยจาก ORM overhead, รองรับ Aggregation Pipeline ประสิทธิภาพสูง | ต้องจัดการ Polyfill สำหรับบาง Driver บน Runtime ใหม่                                    |
-| **Parser Integration** | Memory Layer ครอบ Assignment 1 Parser | แยก Responsibility ชัดเจน และ fallback ได้เสมอ                                  | มี metadata หลายประเภท เช่น Parser Confidence, Date Confidence และ Memory Confidence    |
-| **Date Parsing**       | Deterministic Regex + Heuristic       | Predictable, explainable และ unit test ได้ง่าย                                  | ภาษาไทยมี ambiguity บางรูปแบบที่ต้อง Guess                                              |
-| **Ambiguous Time**     | Guess + Warning + Lower Confidence    | ระบบยังทำงานต่อได้โดยไม่ซ่อน uncertainty                                        | ผู้ใช้ยังต้อง verify ในบางกรณี                                                          |
+| การตัดสินใจ | สิ่งที่เลือก | ข้อดี | ข้อเสีย / ข้อจำกัดที่ยอมรับ |
+|---|---|---|---|
+| **Data Architecture** | Derived on Read (Aggregation) | ข้อมูล Consistent 100%, แก้ไข/ลบแล้วซิงค์ทันที ไม่เกิด Stale Memory | ต้องคำนวณ Query เมื่อเรียกใช้งาน (แก้ไขได้ด้วย Index `{ userId: 1, normalizedKey: 1 }`) |
+| **Matching Engine** | Normalized Exact Match | แม่นยำสูง (High Precision), ไม่เดาสุ่มจนผิดพลาด, ทำงานเร็วมาก (< 5ms) | ไม่รองรับคำพ้องความหมายที่สะกดต่างกันสิ้นเชิง (Semantic Synonyms) |
+| **Technology Stack** | Native MongoDB Driver + Bun | Native ESM, ปลอดภัยจาก ORM overhead, รองรับ Aggregation Pipeline ประสิทธิภาพสูง | ต้องจัดการ Polyfill สำหรับบาง Driver บน Runtime ใหม่ |
+| **Parser Integration** | Memory Layer ครอบ Assignment 1 Parser | แยก Responsibility ชัดเจน และ fallback ได้เสมอ | มี metadata หลายประเภท เช่น Parser Confidence, Date Confidence และ Memory Confidence |
+| **Date Parsing** | Deterministic Regex + Heuristic | Predictable, explainable และ unit test ได้ง่าย | ภาษาไทยมี ambiguity บางรูปแบบที่ต้อง Guess |
+| **Ambiguous Time** | Guess + Warning + Lower Confidence | ระบบยังทำงานต่อได้โดยไม่ซ่อน uncertainty | ผู้ใช้ยังต้อง verify ในบางกรณี |
 
 ---
 
