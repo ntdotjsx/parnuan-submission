@@ -34,7 +34,7 @@
       <section id="review" class="w-full transition-all duration-300"></section>
 
       <!-- Input Form Card with clear borders -->
-      <div class="bg-white rounded-2xl p-5 sm:p-6 border-2 border-slate-200 shadow-sm">
+      <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
         <form hx-post="/ui/parse" hx-target="#review" hx-swap="innerHTML" class="flex flex-col gap-4">
           <!-- Textarea Container -->
           <div class="flex flex-col gap-2">
@@ -50,7 +50,7 @@
               required
               name="text"
               rows="3"
-              class="w-full p-3.5 text-base text-slate-800 bg-slate-50 border-2 border-slate-300 rounded-xl focus:bg-white focus:border-[#d53583] focus:ring-4 focus:ring-pink-500/15 transition-all outline-none resize-y placeholder:text-slate-400"
+              class="w-full p-3.5 text-base text-slate-800 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:border-[#d53583] focus:ring-4 focus:ring-pink-500/15 transition-all outline-none resize-y placeholder:text-slate-400"
               placeholder="พิมพ์ข้อความ เช่น 'ข้าวมันไก่ 50 น้ำเปล่า 7' หรือ 'เมื่อวานตอน 5 โมงครึ่ง bts 45'"></textarea>
           </div>
 
