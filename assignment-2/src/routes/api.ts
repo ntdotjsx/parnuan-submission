@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { parseTransactions } from '../modules/parser/transaction'
+import { rateLimiter } from '../middlewares/rate-limit'
 
 export const apiRouter = new Hono()
 
@@ -15,7 +16,7 @@ const MAX_TEXT_LENGTH = 5_000
  * @param c - Hono context containing JSON payload: { text: string }
  * @returns 200 with parsed Transaction array, or 400 if validation fails.
  */
-apiRouter.post('/parse', async (c) => {
+apiRouter.post('/parse', rateLimiter({ windowMs: 60_000, max: 30 }), async (c) => {
     const contentType = c.req.header('content-type') || ''
     // ตรวจสอบ Header ก่อน parse JSON
     if (!contentType.includes('application/json')) return c.json({ error: "Content-Type must be application/json" }, 415)
