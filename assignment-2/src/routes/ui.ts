@@ -11,8 +11,7 @@ import {
     updateTransactionCategory,
     inspectUserMemory,
     getRecentTransactions,
-    deleteUserMemoryKey,
-    clearAllUserMemory,
+    deleteTransaction,
 } from '../modules/memory/service'
 import { CATEGORIES, resolveCategory } from '../modules/constants/categories'
 
@@ -115,24 +114,9 @@ const renderMemoryInsightsCardHtml = (user: { id: string; name: string }, memori
                 >
                     <div class="flex items-center justify-between gap-2">
                         <span class="text-xs font-bold text-slate-800 break-words">${escapeHtml(mem.keyword)}</span>
-                        <div class="flex items-center gap-1.5 shrink-0">
-                            <span class="text-[11px] bg-pink-50 text-[#d53583] border border-pink-200 px-2 py-0.5 rounded font-semibold">
-                                ${escapeHtml(mem.preferredCategoryTitle)}
-                            </span>
-                            <button
-                                hx-post="/ui/memory/delete"
-                                hx-vals='{"userId": "${escapeHtml(user.id)}", "keyword": "${escapeHtml(mem.keyword)}"}'
-                                hx-target="#memory-insights-card"
-                                hx-swap="outerHTML"
-                                hx-confirm="ต้องการลบความจำ '${escapeHtml(mem.keyword)}' ใช่หรือไม่?"
-                                class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-lg transition-all cursor-pointer"
-                                title="ลบความจำคำนี้"
-                            >
-                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
-                        </div>
+                        <span class="text-[11px] bg-pink-50 text-[#d53583] border border-pink-200 px-2 py-0.5 rounded font-semibold shrink-0">
+                            ${escapeHtml(mem.preferredCategoryTitle)}
+                        </span>
                     </div>
                     <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1.5 border-t border-slate-200/50">
                         <span>ใช้ไป: <strong class="text-slate-700">${mem.frequency} ครั้ง</strong></span>
@@ -145,19 +129,6 @@ const renderMemoryInsightsCardHtml = (user: { id: string; name: string }, memori
             </div>
            </div>`
 
-    const clearAllButton = memories.length > 0
-        ? `<button
-            hx-post="/ui/memory/clear"
-            hx-vals='{"userId": "${escapeHtml(user.id)}"}'
-            hx-target="#memory-insights-card"
-            hx-swap="outerHTML"
-            hx-confirm="ต้องการล้างความจำทั้งหมดของ ${escapeHtml(user.name)} ใช่หรือไม่?"
-            class="text-[11px] text-red-500 hover:text-red-700 hover:underline font-medium cursor-pointer"
-           >
-            ล้างทั้งหมด
-           </button>`
-        : ''
-
     return `
         <div id="memory-insights-card" class="bg-white rounded-2xl p-5 shadow-xs flex flex-col gap-3.5">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -165,7 +136,6 @@ const renderMemoryInsightsCardHtml = (user: { id: string; name: string }, memori
                     <h2 class="text-sm font-bold text-slate-900">สิ่งที่ระบบจำได้ (Memory Insights)</h2>
                 </div>
                 <div class="flex items-center gap-2">
-                    ${clearAllButton}
                     <span id="memory-count-badge" class="text-[11px] bg-pink-50 text-[#d53583] font-bold px-2.5 py-0.5 rounded-full border border-pink-200">
                         ${memories.length} คำ
                     </span>
@@ -322,6 +292,20 @@ const renderRecentTransactionsCardHtml = (
                                     </div>
                                 </div>
                             </form>
+
+                            <button
+                                type="button"
+                                hx-post="/ui/transactions/delete"
+                                hx-vals='{"userId": "${escapeHtml(user.id)}", "transactionId": "${escapeHtml(tx.id)}"}'
+                                hx-swap="none"
+                                hx-confirm="ต้องการลบรายการ '${escapeHtml(tx.description)}' (${tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท) ใช่หรือไม่?"
+                                class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-xl transition-all cursor-pointer shrink-0"
+                                title="ลบรายการนี้"
+                            >
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 `
@@ -719,27 +703,36 @@ uiRouter.post('/ui/transactions/edit', async (c) => {
 })
 
 /**
- * Route: POST /ui/memory/delete
+ * Route: POST /ui/transactions/delete
  *
- * ลบความจำสำหรับคำสำคัญที่ระบุ และส่งคืนการ์ด Memory Insights พร้อมประวัติล่าสุดฉบับอัปเดต
+ * ลบรายการธุรกรรมของผู้ใช้และส่งคืนหน้าจออัปเดตแบบ Dynamic:
+ * - ลบรายการออกจาก MongoDB ตาม userId และ transactionId (User Isolation)
+ * - คำนวณความจำ (Derived Memory) และดึงประวัติล่าสุดใหม่โดยอัตโนมัติ
+ * - อัปเดตทั้งการ์ดประวัติและการ์ดสิ่งที่ระบบจำได้ผ่าน HTMX OOB Swap
  */
-uiRouter.post('/ui/memory/delete', async (c) => {
+uiRouter.post('/ui/transactions/delete', async (c) => {
     const body = await c.req.parseBody()
     const userId = String(body.userId ?? '')
-    const keyword = String(body.keyword ?? '')
+    const transactionId = String(body.transactionId ?? '')
 
     const user = await resolveUser(userId)
     if (!user) {
         return c.text('User not found', 404)
     }
 
-    if (keyword) {
-        await deleteUserMemoryKey(user.id, keyword)
+    const deleted = await deleteTransaction(user.id, transactionId)
+    if (!deleted) {
+        return c.html(`
+            <script>
+                if (typeof toast !== 'undefined') {
+                    toast.error('ไม่พบรายการหรือไม่สามารถลบได้');
+                }
+            </script>
+        `, 404)
     }
 
     const updatedMemories = await inspectUserMemory(user.id)
     const recentTransactions = await getRecentTransactions(user.id, 15)
-    const safeKeyword = keyword.replace(/'/g, "\\'")
 
     return c.html(`
         ${renderMemoryInsightsCardHtml(user, updatedMemories)}
@@ -748,41 +741,9 @@ uiRouter.post('/ui/memory/delete', async (c) => {
         </div>
         <script>
             if (typeof toast !== 'undefined') {
-                toast.success("ลบความจำ '${safeKeyword}' สำเร็จ");
+                toast.success("ลบรายการธุรกรรมสำเร็จ (ความจำอัปเดตแล้ว)");
             }
         </script>
     `)
 })
 
-/**
- * Route: POST /ui/memory/clear
- *
- * ล้างความจำทั้งหมดของผู้ใช้ และส่งคืนการ์ด Memory Insights พร้อมประวัติล่าสุดฉบับว่างเปล่า
- */
-uiRouter.post('/ui/memory/clear', async (c) => {
-    const body = await c.req.parseBody()
-    const userId = String(body.userId ?? '')
-
-    const user = await resolveUser(userId)
-    if (!user) {
-        return c.text('User not found', 404)
-    }
-
-    await clearAllUserMemory(user.id)
-
-    const updatedMemories = await inspectUserMemory(user.id)
-    const recentTransactions = await getRecentTransactions(user.id, 15)
-    const safeName = user.name.replace(/'/g, "\\'")
-
-    return c.html(`
-        ${renderMemoryInsightsCardHtml(user, updatedMemories)}
-        <div id="recent-transactions-card" hx-swap-oob="outerHTML">
-            ${renderRecentTransactionsCardHtml(user, recentTransactions)}
-        </div>
-        <script>
-            if (typeof toast !== 'undefined') {
-                toast.success("ล้างความจำทั้งหมดของ ${safeName} สำเร็จ");
-            }
-        </script>
-    `)
-})

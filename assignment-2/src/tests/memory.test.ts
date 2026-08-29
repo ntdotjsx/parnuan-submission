@@ -10,9 +10,9 @@ import {
     updateTransactionCategory,
     inspectUserMemory,
     getRecentTransactions,
-    deleteUserMemoryKey,
-    clearAllUserMemory,
+    deleteTransaction,
 } from '../modules/memory/service'
+import { apiRouter } from '../routes/api'
 
 /**
  * Memory Layer Test Suite for Assignment 2
@@ -408,88 +408,141 @@ describe('Memory Layer Service', () => {
     })
 
     /**
-     * CASE 8 — Forget One Memory Key (Non-destructive)
+     * CASE 8 — Transaction Deletion & Automatic Memory Recomputation
+     * พิสูจน์ว่าความจำเป็น Derived View จาก Transaction History:
+     * 1. สร้างหลายรายการที่มี normalized description เดียวกันแต่คนละหมวดหมู่
+     * 2. ตรวจสอบหมวดหมู่ที่ระบบเรียนรู้ได้ (Majority Category)
+     * 3. ลบรายการธุรกรรมในอดีต (deleteTransaction)
+     * 4. Query ความจำใหม่อีกครั้ง
+     * 5. ยืนยันว่าผลลัพธ์ความจำเปลี่ยนไปตามประวัติธุรกรรมที่เหลืออยู่โดยอัตโนมัติ
      */
-    describe('CASE 8 — Non-destructive Single Key Forget', () => {
-        it('should forget a memory key without deleting transactions from history', async () => {
-            const testUserId = 'test_user_case8'
+    describe('CASE 8 — Transaction Deletion & Automatic Memory Recomputation', () => {
+        it('should automatically recompute derived memory when relevant historical transactions are deleted', async () => {
+            const testUserId = 'test_user_delete_recompute'
+            const tx1Id = 'tx-del-1'
+            const tx2Id = 'tx-del-2'
+            const tx3Id = 'tx-del-3'
 
+            // Step 1: บันทึก ข้าวมันไก่ เป็น food 2 รายการ และ breakfast 1 รายการ
             await learnTransactions(testUserId, [
                 {
-                    description: 'กาแฟ',
-                    amount: 50,
-                    categoryId: 'drink',
-                    categoryTitle: 'เครื่องดื่ม',
-                },
-                {
+                    id: tx1Id,
                     description: 'ข้าวมันไก่',
                     amount: 50,
                     categoryId: 'food',
                     categoryTitle: 'อาหาร',
+                    date: '2026-08-27T10:00:00.000Z',
                 },
-            ])
-
-            expect(await getMemoryMatch(testUserId, 'กาแฟ')).not.toBeNull()
-            expect(await getMemoryMatch(testUserId, 'ข้าวมันไก่')).not.toBeNull()
-
-            // ลืมเฉพาะคำว่า 'กาแฟ'
-            const modifiedCount = await deleteUserMemoryKey(testUserId, 'กาแฟ')
-            expect(modifiedCount).toBe(1)
-
-            // กาแฟ ต้องไม่ถูกจดจำเป็น Memory แล้ว
-            expect(await getMemoryMatch(testUserId, 'กาแฟ')).toBeNull()
-
-            // ข้าวมันไก่ ต้องยังคงจำได้ตามปกติ
-            const chickenMatch = await getMemoryMatch(testUserId, 'ข้าวมันไก่')
-            expect(chickenMatch?.categoryId).toBe('food')
-
-            // ประวัติธุรกรรมของกาแฟยังคงอยู่ในฐานข้อมูล ไม่ถูกลบจริง
-            const recent = await getRecentTransactions(testUserId)
-            expect(recent).toHaveLength(2)
-            expect(recent.some((t) => t.description === 'กาแฟ')).toBe(true)
-        })
-    })
-
-    /**
-     * CASE 9 — Clear All Memory (Non-destructive)
-     */
-    describe('CASE 9 — Non-destructive Clear All Memory', () => {
-        it('should clear all user memory while preserving all transaction records', async () => {
-            const testUserId = 'test_user_case9'
-
-            await learnTransactions(testUserId, [
                 {
+                    id: tx2Id,
                     description: 'ข้าวมันไก่',
-                    amount: 50,
+                    amount: 55,
                     categoryId: 'food',
                     categoryTitle: 'อาหาร',
                     date: '2026-08-28T10:00:00.000Z',
                 },
                 {
-                    description: 'bts หมอชิต',
-                    amount: 45,
-                    categoryId: 'transport',
-                    categoryTitle: 'เดินทาง',
+                    id: tx3Id,
+                    description: 'ข้าวมันไก่',
+                    amount: 60,
+                    categoryId: 'breakfast',
+                    categoryTitle: 'ข้าวเช้า',
                     date: '2026-08-29T10:00:00.000Z',
                 },
             ])
 
-            const clearedCount = await clearAllUserMemory(testUserId)
-            expect(clearedCount).toBe(2)
+            // Step 2: ตรวจสอบความจำเริ่มต้น -> Majority คือ food (2 ครั้ง vs 1 ครั้ง)
+            const initialMatch = await getMemoryMatch(testUserId, 'ข้าวมันไก่')
+            expect(initialMatch).not.toBeNull()
+            expect(initialMatch?.categoryId).toBe('food')
+            expect(initialMatch?.categoryTitle).toBe('อาหาร')
+            expect(initialMatch?.frequency).toBe(2)
+            expect(initialMatch?.confidence).toBe(0.83)
 
-            // Memory Insights ต้องว่างเปล่า
+            // Step 3: ลบรายการ tx1Id (food) ออกจากประวัติธุรกรรม
+            const deletedTx1 = await deleteTransaction(testUserId, tx1Id)
+            expect(deletedTx1).toBe(true)
+
+            // ตอนนี้ประวัติเหลือ: food (1 ครั้ง) และ breakfast (1 ครั้ง)
+            // รายการล่าสุด (tx3Id: breakfast - 2026-08-29) จะชนะด้วย Recency Tie-Breaker
+            const afterFirstDelete = await getMemoryMatch(testUserId, 'ข้าวมันไก่')
+            expect(afterFirstDelete).not.toBeNull()
+            expect(afterFirstDelete?.categoryId).toBe('breakfast')
+            expect(afterFirstDelete?.categoryTitle).toBe('ข้าวเช้า')
+            expect(afterFirstDelete?.frequency).toBe(1)
+            expect(afterFirstDelete?.confidence).toBe(0.80)
+
+            // Step 4: ลบรายการ tx2Id (food ตัวที่สอง)
+            const deletedTx2 = await deleteTransaction(testUserId, tx2Id)
+            expect(deletedTx2).toBe(true)
+
+            // ตอนนี้ประวัติเหลือเพียง breakfast 1 รายการเดียว -> Unanimous match
+            const afterSecondDelete = await getMemoryMatch(testUserId, 'ข้าวมันไก่')
+            expect(afterSecondDelete).not.toBeNull()
+            expect(afterSecondDelete?.categoryId).toBe('breakfast')
+            expect(afterSecondDelete?.categoryTitle).toBe('ข้าวเช้า')
+            expect(afterSecondDelete?.frequency).toBe(1)
+            expect(afterSecondDelete?.confidence).toBe(0.85)
+
+            // Step 5: ลบรายการสุดท้าย tx3Id (breakfast)
+            const deletedTx3 = await deleteTransaction(testUserId, tx3Id)
+            expect(deletedTx3).toBe(true)
+
+            // ไม่เหลือประวัติของ 'ข้าวมันไก่' อีกแล้ว -> ความจำต้องคืนค่า null
+            const finalMatch = await getMemoryMatch(testUserId, 'ข้าวมันไก่')
+            expect(finalMatch).toBeNull()
+
+            // Memory Insights ต้องไม่มีคีย์ 'ข้าวมันไก่'
             const insights = await inspectUserMemory(testUserId)
-            expect(insights).toHaveLength(0)
-
-            // getMemoryMatch ต้องคืนค่า null
-            expect(await getMemoryMatch(testUserId, 'ข้าวมันไก่')).toBeNull()
-            expect(await getMemoryMatch(testUserId, 'bts หมอชิต')).toBeNull()
-
-            // ประวัติธุรกรรมทั้งหมดต้องยังอยู่ครบ 2 รายการ
-            const recent = await getRecentTransactions(testUserId)
-            expect(recent).toHaveLength(2)
+            expect(insights.find((i) => i.keyword === 'ข้าวมันไก่')).toBeUndefined()
         })
     })
+
+    /**
+     * CASE 9 — Transaction Deletion Edge Cases: Nonexistent ID & User Isolation
+     */
+    describe('CASE 9 — Transaction Deletion Error Handling & User Isolation', () => {
+        it('should return false when trying to delete a nonexistent transaction', async () => {
+            const testUserId = 'test_user_del_err'
+            const result = await deleteTransaction(testUserId, 'nonexistent-uuid-12345')
+            expect(result).toBe(false)
+        })
+
+        it('should strictly isolate transaction deletion between users', async () => {
+            const userA = 'test_user_isolation_a'
+            const userB = 'test_user_isolation_b'
+            const txUserAId = 'tx-belong-to-a'
+
+            // User A บันทึกรายการ
+            await learnTransactions(userA, [
+                {
+                    id: txUserAId,
+                    description: 'ก๋วยเตี๋ยวเรือ',
+                    amount: 60,
+                    categoryId: 'food',
+                    categoryTitle: 'อาหาร',
+                },
+            ])
+
+            // ตรวจสอบว่า User A มีความจำ
+            expect(await getMemoryMatch(userA, 'ก๋วยเตี๋ยวเรือ')).not.toBeNull()
+
+            // User B พยายามลบรายการของ User A
+            const deleteResult = await deleteTransaction(userB, txUserAId)
+            expect(deleteResult).toBe(false)
+
+            // รายการของ User A ต้องยังคงอยู่ครบถ้วนในฐานข้อมูล
+            const userATxs = await getRecentTransactions(userA)
+            expect(userATxs).toHaveLength(1)
+            expect(userATxs[0].id).toBe(txUserAId)
+
+            // ความจำของ User A ต้องไม่ถูกกระทบกระเทือน
+            const userAMatch = await getMemoryMatch(userA, 'ก๋วยเตี๋ยวเรือ')
+            expect(userAMatch).not.toBeNull()
+            expect(userAMatch?.categoryId).toBe('food')
+        })
+    })
+
 
     /**
      * CASE 10 — Editing Historical Transaction (Memory Synchronization)
@@ -653,6 +706,55 @@ describe('Memory Layer Service', () => {
 
             const recent = await getRecentTransactions(testUserId)
             expect(recent).toHaveLength(2)
+        })
+    })
+
+    /**
+     * DELETE /api/transactions/:id Endpoint Tests
+     */
+    describe('DELETE /api/transactions/:id Route', () => {
+        it('should successfully delete a transaction and recompute memory via HTTP DELETE', async () => {
+            const { users } = getCollections()
+            const testUser = {
+                id: 'test_api_user',
+                name: 'Test API User',
+                avatar: 'https://example.com/avatar.png',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            }
+            await users.insertOne(testUser)
+
+            const txId = 'tx-api-test-01'
+            await learnTransactions(testUser.id, [
+                {
+                    id: txId,
+                    description: 'ชานมไข่มุก',
+                    amount: 45,
+                    categoryId: 'food',
+                    categoryTitle: 'อาหาร',
+                },
+            ])
+
+            expect(await getMemoryMatch(testUser.id, 'ชานมไข่มุก')).not.toBeNull()
+
+            const res = await apiRouter.request(`/transactions/${txId}?userId=${testUser.id}`, {
+                method: 'DELETE',
+            })
+            expect(res.status).toBe(200)
+            const data: any = await res.json()
+            expect(data.success).toBe(true)
+            expect(data.deletedTransactionId).toBe(txId)
+
+            // Memory must recompute to null
+            expect(await getMemoryMatch(testUser.id, 'ชานมไข่มุก')).toBeNull()
+
+            // Subsequent delete should return 404
+            const res404 = await apiRouter.request(`/transactions/${txId}?userId=${testUser.id}`, {
+                method: 'DELETE',
+            })
+            expect(res404.status).toBe(404)
+
+            await users.deleteOne({ id: testUser.id })
         })
     })
 })

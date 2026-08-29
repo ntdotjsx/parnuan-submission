@@ -11,8 +11,7 @@ import {
     getRecentTransactions,
     resolveUser,
     getAllUsers,
-    deleteUserMemoryKey,
-    clearAllUserMemory,
+    deleteTransaction,
 } from '../modules/memory/service'
 import { CATEGORIES } from '../modules/constants/categories'
 
@@ -359,62 +358,23 @@ apiRouter.get('/transactions', async (c) => {
 })
 
 /**
- * Route: DELETE /api/memory
+ * Route: DELETE /api/transactions/:id
  *
- * ลบความจำสำหรับคำสำคัญที่ระบุของผู้ใช้:
- * - ลบประวัติธุรกรรมทั้งหมดที่มี keyword ตรงกันของผู้ใช้
+ * ลบรายการธุรกรรมของผู้ใช้งานออกจากฐานข้อมูล:
+ * - ตรวจสอบตัวตนของ User ID
+ * - ลบเฉพาะรายการที่เป็นของ User ID นั้นเพื่อความปลอดภัย (User Isolation)
+ * - ส่งคืน 404 หากไม่พบรายการหรือไม่ใช่รายการของผู้ใช้นี้
+ * - ความจำ (Derived Memory) ในครั้งถัดไปจะสะท้อนตามประวัติธุรกรรมที่เหลืออยู่โดยอัตโนมัติ
+ * - ไม่มีการแก้ไขหรือ rebuild ตารางความจำแยกต่างหาก
  *
- * @param c - Context ของ Hono Framework พร้อม Query Param ?userId=...&keyword=... หรือ JSON Body
- * @returns ผลลัพธ์จำนวนรายการที่ถูกลบ
+ * @param c - Context ของ Hono Framework พร้อม Param id และ User ID จาก query/header/body
+ * @returns สถานะการลบสำเร็จ หรือ 404 หากไม่พบ
  */
-apiRouter.delete('/memory', async (c) => {
-    let rawUserId = c.req.query('userId') || c.req.header('x-user-id')
-    let keyword = c.req.query('keyword')
-
-    if (!keyword && c.req.header('content-type')?.includes('application/json')) {
-        try {
-            const body = await c.req.json()
-            rawUserId = body.userId || rawUserId
-            keyword = body.keyword
-        } catch {
-            // Ignore parse errors
-        }
-    }
-
-    const user = await resolveUser(rawUserId)
-    if (!user) {
-        return c.json({ error: `User '${rawUserId}' not found in database.` }, 404)
-    }
-
-    if (!keyword || typeof keyword !== 'string' || !keyword.trim()) {
-        return c.json({ error: 'keyword is required and must be a non-empty string' }, 400)
-    }
-
-    const deletedCount = await deleteUserMemoryKey(user.id, keyword)
-
-    return c.json({
-        success: true,
-        user: { id: user.id, name: user.name },
-        keyword: keyword.trim(),
-        deletedCount,
-        message: `ลบความจำคำว่า '${keyword.trim()}' สำเร็จ (${deletedCount} รายการ)`,
-    })
-})
-
-/**
- * Route: POST /api/memory/clear
- *
- * ล้างประวัติความจำทั้งหมดของผู้ใช้ (Non-destructive Reset):
- * - ทำเครื่องหมายลืมความจำในประวัติธุรกรรมทั้งหมดของผู้ใช้งานนั้น
- * - ไม่ลบประวัติธุรกรรมจริงออกจากฐานข้อมูล
- *
- * @param c - Context ของ Hono Framework พร้อม Request Body { userId: string }
- * @returns จำนวนรายการทั้งหมดที่ถูกล้างความจำ
- */
-apiRouter.post('/memory/clear', async (c) => {
+apiRouter.delete('/transactions/:id', async (c) => {
+    const id = c.req.param('id')
     let rawUserId = c.req.query('userId') || c.req.header('x-user-id')
 
-    if (c.req.header('content-type')?.includes('application/json')) {
+    if (!rawUserId && c.req.header('content-type')?.includes('application/json')) {
         try {
             const body = await c.req.json()
             rawUserId = body.userId || rawUserId
@@ -428,13 +388,17 @@ apiRouter.post('/memory/clear', async (c) => {
         return c.json({ error: `User '${rawUserId}' not found in database.` }, 404)
     }
 
-    const deletedCount = await clearAllUserMemory(user.id)
+    const deleted = await deleteTransaction(user.id, id)
+    if (!deleted) {
+        return c.json({ error: `Transaction '${id}' not found for user '${user.name}'.` }, 404)
+    }
 
     return c.json({
         success: true,
         user: { id: user.id, name: user.name },
-        deletedCount,
-        message: `ล้างความจำทั้งหมดของ '${user.name}' สำเร็จ (${deletedCount} รายการ)`,
+        message: 'Transaction deleted successfully and memory recomputed from remaining history',
+        deletedTransactionId: id,
     })
 })
+
 

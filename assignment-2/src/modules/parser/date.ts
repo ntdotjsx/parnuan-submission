@@ -1,4 +1,4 @@
-import type { ExtractDateResult } from "../../types"
+import type { ExtractDateResult } from "./types"
 
 /**
  * Resolves the time offset based on the period word.

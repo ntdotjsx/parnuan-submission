@@ -418,56 +418,22 @@ export async function getRecentTransactions(userId: string, limit = 20): Promise
 }
 
 /**
- * ลบความจำสำหรับคำศัพท์ที่ระบุของผู้ใช้ (Non-destructive Forget):
- * อัปเดตรายการธุรกรรมที่มี normalizedKey ตรงกันให้มี memoryExcluded = true
- * เพื่อไม่ให้นำมาคำนวณใน Memory Layer โดยที่ประวัติธุรกรรมยังคงอยู่ครบถ้วน
+ * ลบรายการธุรกรรมของผู้ใช้งานออกจากฐานข้อมูล (Transaction Deletion):
+ * - ลบเฉพาะรายการที่เป็นของ userId นั้นๆ เพื่อความปลอดภัย (User Isolation)
+ * - ป้องกันไม่ให้ผู้ใช้คนหนึ่งลบรายการของผู้ใช้อื่น
+ * - เมื่อรายการถูกลบ การประมวลผลความจำ (Derived Memory) ในครั้งถัดไปจะสะท้อนตามประวัติธุรกรรมที่เหลืออยู่โดยอัตโนมัติ
+ * - ไม่มีการแก้ไขหรือ rebuild ตารางความจำแยกต่างหาก เพราะความจำเป็น Derived View จาก transactions เสมอ
  *
  * @param userId - รหัสผู้ใช้
- * @param keyword - คำศัพท์ที่ต้องการลบความจำ
- * @returns จำนวนรายการที่ถูกทำเครื่องหมายลืมความจำ
+ * @param transactionId - รหัสรายการธุรกรรมที่ต้องการลบ
+ * @returns true หากลบสำเร็จ หรือ false หากไม่พบรายการหรือไม่ใช่ของ user คนนี้
  */
-export async function deleteUserMemoryKey(userId: string, keyword: string): Promise<number> {
+export async function deleteTransaction(userId: string, transactionId: string): Promise<boolean> {
     const { transactions } = getCollections()
-    const normKey = normalizeMemoryKey(keyword)
-    if (!normKey) return 0
-
-    const result = await transactions.updateMany(
-        {
-            userId,
-            normalizedKey: normKey,
-            memoryExcluded: { $ne: true },
-        },
-        {
-            $set: {
-                memoryExcluded: true,
-                updatedAt: new Date(),
-            },
-        },
-    )
-    return result.modifiedCount
+    const result = await transactions.deleteOne({
+        id: transactionId,
+        userId,
+    })
+    return result.deletedCount > 0
 }
-
-/**
- * ล้างความจำทั้งหมดของผู้ใช้ (Non-destructive Reset):
- * อัปเดตรายการธุรกรรมทั้งหมดของผู้ใช้งานนั้นให้มี memoryExcluded = true
- * เพื่อล้างความจำทั้งหมดโดยที่ประวัติธุรกรรมยังคงอยู่ครบถ้วน
- *
- * @param userId - รหัสผู้ใช้
- * @returns จำนวนรายการทั้งหมดที่ถูกทำเครื่องหมายล้างความจำ
- */
-export async function clearAllUserMemory(userId: string): Promise<number> {
-    const { transactions } = getCollections()
-    const result = await transactions.updateMany(
-        {
-            userId,
-            memoryExcluded: { $ne: true },
-        },
-        {
-            $set: {
-                memoryExcluded: true,
-                updatedAt: new Date(),
-            },
-        },
-    )
-    return result.modifiedCount
-}
+

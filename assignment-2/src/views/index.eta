@@ -197,11 +197,6 @@
                 <h2 class="text-sm font-bold text-slate-900">สิ่งที่ระบบจำได้ (Memory Insights)</h2>
               </div>
               <div class="flex items-center gap-2">
-                <% if (it.memories.length > 0) { %>
-                  <button hx-post="/ui/memory/clear" hx-vals='{"userId": "<%= it.currentUser.id %>"}' hx-target="#memory-insights-card" hx-swap="outerHTML" hx-confirm="ต้องการล้างความจำทั้งหมดของ <%= it.currentUser.name %> ใช่หรือไม่?" class="text-[11px] text-red-500 hover:text-red-700 hover:underline font-medium cursor-pointer">
-                    ล้างทั้งหมด
-                  </button>
-                <% } %>
                 <span id="memory-count-badge" class="text-[11px] bg-pink-50 text-[#d53583] font-bold px-2.5 py-0.5 rounded-full border border-pink-200">
                   <%= it.memories.length %> คำ
                 </span>
@@ -230,16 +225,9 @@
                   >
                     <div class="flex items-center justify-between gap-2">
                       <span class="text-xs font-bold text-slate-800 break-words"><%= mem.keyword %></span>
-                      <div class="flex items-center gap-1.5 shrink-0">
-                        <span class="text-[11px] bg-pink-50 text-[#d53583] border border-pink-200 px-2 py-0.5 rounded font-semibold">
-                          <%= mem.preferredCategoryTitle %>
-                        </span>
-                        <button hx-post="/ui/memory/delete" hx-vals='{"userId": "<%= it.currentUser.id %>", "keyword": "<%= mem.keyword %>"}' hx-target="#memory-insights-card" hx-swap="outerHTML" hx-confirm="ต้องการลบความจำ '<%= mem.keyword %>' ใช่หรือไม่?" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-lg transition-all cursor-pointer" title="ลบความจำคำนี้">
-                          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
+                      <span class="text-[11px] bg-pink-50 text-[#d53583] border border-pink-200 px-2 py-0.5 rounded font-semibold shrink-0">
+                        <%= mem.preferredCategoryTitle %>
+                      </span>
                     </div>
                     <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1.5 border-t border-slate-200/50">
                       <span>ใช้ไป: <strong class="text-slate-700"><%= mem.frequency %> ครั้ง</strong></span>
@@ -380,6 +368,21 @@
                           <%~ include('components/category-dropdown', { categoryTitle: tx.categoryTitle, categoryId: tx.categoryId, name: 'categoryId', autoSubmit: true }) %>
                         </div>
                       </form>
+
+                      <!-- Explicit Delete Transaction Action -->
+                      <button
+                        type="button"
+                        hx-post="/ui/transactions/delete"
+                        hx-vals='{"userId": "<%= it.currentUser.id %>", "transactionId": "<%= tx.id %>"}'
+                        hx-swap="none"
+                        hx-confirm="ต้องการลบรายการ '<%= tx.description %>' (<%= tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %> บาท) ใช่หรือไม่?"
+                        class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-xl transition-all cursor-pointer shrink-0"
+                        title="ลบรายการนี้"
+                      >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 <% }) %>

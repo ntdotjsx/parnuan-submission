@@ -127,7 +127,6 @@ interface TransactionDocument {
   categoryTitle: string;   // ชื่อหมวดหมู่ภาษาไทย (เช่น ข้าวเช้า, ช้อปปิ้ง)
   date: string;            // วันที่ของธุรกรรม (ISO 8601 String)
   memoryEligible?: boolean;// มีสิทธิ์นำไปคำนวณความจำหรือไม่ (false เมื่อบันทึกตอน Memory OFF)
-  memoryExcluded?: boolean;// ถูกสั่งลืมความจำหรือไม่ (true เมื่อผู้ใช้สั่ง Forget/Clear)
   createdAt: Date;         // เวลาที่บันทึกเข้าระบบ
   updatedAt: Date;         // เวลาที่แก้ไขล่าสุด
 }
@@ -521,7 +520,7 @@ Memory confidence:
 
 1. **Majority Rule:** หมวดหมู่ที่มีจำนวนครั้งการบันทึกมากที่สุดจะได้รับเลือกเป็นอันดับแรก
 2. **Recency Tie-Breaker:** หากจำนวนครั้งเท่ากัน (เช่น บันทึก `อาหาร` 1 ครั้ง และ `ข้าวเช้า` 1 ครั้ง) ระบบจะเลือกหมวดหมู่ของรายการที่มี `updatedAt` / `createdAt` ใหม่ล่าสุด
-3. **Non-destructive Forget & Reset:** การสั่งลืมคำเฉพาะหรือล้างความจำทั้งหมด จะไม่ลบเอกสารธุรกรรมจริงออกจาก MongoDB แต่จะตั้งค่า `memoryExcluded: true` บนเอกสารธุรกรรมที่เกี่ยวข้อง เพื่อให้ระบบ Memory มองข้ามข้อมูลเหล่านั้นในการคำนวณความจำ ขณะที่ประวัติธุรกรรม (Financial Transaction History) ของผู้ใช้ยังคงอยู่ครบถ้วน
+3. **Derived Memory Auto-Sync on Edit & Delete:** เมื่อประวัติธุรกรรมถูกแก้ไขหมวดหมู่ หรือถูกลบออกจากฐานข้อมูล (`DELETE /api/transactions/:id` หรือลบผ่าน UI) ความจำที่คำนวณในครั้งถัดไปจะสะท้อนตามประวัติธุรกรรมจริงที่เหลืออยู่โดยอัตโนมัติ โดยไม่ต้อง maintain ตาราง correction หรือ memory แยกต่างหาก
 
 Flow ของ Conflict Resolution:
 
@@ -604,9 +603,7 @@ Aggregation ครั้งถัดไปจะได้:
 ## 6. Trust & Transparency
 
 * **Inspectable Memory State:** ผู้ใช้สามารถดูรายการคำศัพท์ทั้งหมดที่ระบบเรียนรู้ได้ผ่าน Sidebar บนหน้าเว็บ หรือผ่าน API `GET /api/memory?userId=...` โดยแสดงทั้งจำนวนครั้งที่ใช้ และคะแนนความมั่นใจ
-* **Non-destructive Memory Deletion & Resetting:** ผู้ใช้สามารถควบคุมข้อมูลความจำของตนเองได้เต็มรูปแบบโดยไม่สูญเสียประวัติการเงิน:
-  * **ลืมเฉพาะคำ:** กดปุ่มถังขยะ `🗑️` ที่การ์ดคำศัพท์ หรือเรียก `DELETE /api/memory?userId=...&keyword=...` (ระบบจะยกเว้นคำนั้นจาก Memory โดยประวัติธุรกรรมยังคงอยู่)
-  * **ล้างความจำทั้งหมด:** กดปุ่ม `ล้างทั้งหมด` หรือเรียก `POST /api/memory/clear` (ระบบจะรีเซ็ตความจำทั้งหมดโดยประวัติธุรกรรมยังคงอยู่ครบถ้วน)
+* **History as the Single Source of Truth:** ความจำไม่ได้ถูกแยกเก็บในตารางอื่น แต่คำนวณสดจากประวัติธุรกรรมจริง (Transactions Collection) หากผู้ใช้ต้องการแก้ไขความจำ สามารถแก้ไขหรือลบรายการในประวัติได้โดยตรง (`DELETE /api/transactions/:id` หรือกดปุ่มลบรายการธุรกรรมในหน้าประวัติ) และความจำจะเปลี่ยนตามทันที
 * **Clear Attribution Badge:** ในหน้าตรวจสอบก่อนบันทึก ระบบจะแสดงป้าย `🧠 [จัดหมวดจากความจำ]` หรือ `⚙️ [จัดหมวดโดยระบบ]` ชัดเจน พร้อมเปอร์เซ็นต์ความมั่นใจ
 * **Manual Override & Customization:** ผู้ใช้สามารถเปลี่ยนหมวดหมู่ผ่าน Dropdown หรือพิมพ์หมวดหมู่ใหม่ได้ทันทีก่อนกดยืนยัน
 
@@ -632,7 +629,7 @@ Aggregation ครั้งถัดไปจะได้:
 
 | การตัดสินใจ | สิ่งที่เลือก | ข้อดี | ข้อเสีย / ข้อจำกัดที่ยอมรับ |
 |---|---|---|---|
-| **Data Architecture** | Derived on Read (Aggregation) | ข้อมูล Consistent, แก้ไข/ลบแล้วซิงค์ทันที ป้องกัน Synchronization Drift | ต้องคำนวณ Query เมื่อเรียกใช้งาน (แก้ไขได้ด้วย Compound Index `{ userId: 1, normalizedKey: 1, memoryEligible: 1, memoryExcluded: 1 }`) |
+| **Data Architecture** | Derived on Read (Aggregation) | ข้อมูล Consistent, แก้ไข/ลบแล้วซิงค์ทันที ป้องกัน Synchronization Drift | ต้องคำนวณ Query เมื่อเรียกใช้งาน (แก้ไขได้ด้วย Compound Index `{ userId: 1, normalizedKey: 1, memoryEligible: 1 }`) |
 | **Matching Engine** | Normalized Exact Match | แม่นยำสูง (High Precision), ไม่เดาสุ่มจนผิดพลาด, ทำงานเร็วมาก (< 5ms) | ไม่รองรับคำพ้องความหมายที่สะกดต่างกันสิ้นเชิง (Semantic Synonyms) |
 | **Technology Stack** | Native MongoDB Driver + Bun | Native ESM, ปลอดภัยจาก ORM overhead, รองรับ Aggregation Pipeline ประสิทธิภาพสูง | ต้องจัดการ Polyfill สำหรับบาง Driver บน Runtime ใหม่ |
 | **Parser Integration** | Memory Layer ครอบ Assignment 1 Parser | แยก Responsibility ชัดเจน และ fallback ได้เสมอ | มี metadata หลายประเภท เช่น Parser Confidence, Date Confidence และ Memory Confidence |
@@ -800,7 +797,7 @@ docker compose up -d --build
 bun test
 ```
 
-*ครอบคลุม **64 tests (177 assertions)** ครบทั้ง Candidate, Category, Date, Transaction และ Memory Layers (100% Passing)*
+*ครอบคลุม **66 tests (198 assertions)** ครบทั้ง Candidate, Category, Date, Transaction และ Memory Layers (100% Passing)*
 
 Test coverage ถูกแบ่งตาม responsibility หลักของระบบ:
 

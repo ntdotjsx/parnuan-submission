@@ -56,7 +56,7 @@ parnuan-submission/
 │
 ├── assignment-2/               # [Bonus] Memory / Learn from Corrections
 │   ├── src/                    # Memory engine, MongoDB models, Dashboard UI
-│   │   └── tests/              # Unit tests (64 tests, 177 assertions)
+│   │   └── tests/              # Unit tests (66 tests, 198 assertions)
 │   ├── static/                 # Assets & icons
 │   ├── ASSIGNMENT.md           # เอกสารโจทย์ Assignment 2
 │   ├── Dockerfile              # Docker container spec สำหรับ Assignment 2
@@ -92,8 +92,8 @@ parnuan-submission/
 * **สิ่งที่พัฒนา:**
   * **Passive Learning System:** เรียนรู้พฤติกรรมผู้ใช้จากประวัติธุรกรรมจริงที่กดยืนยัน (Confirmed Transactions) โดยไม่ต้องสอนกฎเอง
   * **Multi-User Isolation:** แยกความจำของผู้ใช้แต่ละคนอย่างเด็ดขาด (เช่น "นัท" จัด `ข้าวมันไก่` เป็น `ข้าวเช้า`, "เติ้ล" จัดเป็น `อาหาร`)
-  * **Derived Memory Layer (MongoDB Aggregation):** คำนวณความจำแบบ on-demand ด้วย Majority Rule + Recency Tie-Breaker ไม่เกิดปัญหาข้อมูลค้างเมื่อมีการแก้ไขหรือลบ
-  * **Inspectable & Manageable Memory Dashboard:** หน้าแดชบอร์ดแบบ 2 คอลัมน์ สามารถดูคำที่ระบบจำได้ ลบคำที่ไม่ต้องการ ล้างความจำทั้งหมด หรือปิดสวิตช์ระบบความจำได้ตามใจชอบ
+  * **Derived Memory Layer (MongoDB Aggregation):** คำนวณความจำแบบ on-demand ด้วย Majority Rule + Recency Tie-Breaker ซิงค์ตามการแก้ไขและลบธุรกรรมโดยอัตโนมัติ
+  * **Inspectable & Manageable Memory Dashboard:** หน้าแดชบอร์ดแบบ 2 คอลัมน์ สามารถดูคำที่ระบบจำได้ แก้ไขหรือลบรายการในประวัติเพื่อปรับปรุงความจำ หรือปิดสวิตช์ระบบความจำได้ตามใจชอบ
 * **เอกสารฉบับเต็ม:** [อ่าน README ของ Assignment 2](./assignment-2/README.md)
 
 ---
@@ -107,7 +107,7 @@ parnuan-submission/
 | **Web Server** | [Hono](https://hono.dev/) | Web Framework ขนาดเล็ก เร็ว เหมาะกับทั้ง REST API และ SSR |
 | **Frontend & UI** | [HTMX](https://htmx.org/) + [Eta](https://eta.js.org/) + [Tailwind CSS](https://tailwindcss.com/) | พัฒนา Dynamic UI ได้รวดเร็ว โค้ดกระชับ ไม่ต้องใช้ Build Pipeline ของ SPA |
 | **Database (Assign 2)** | MongoDB (ผ่าน Docker) | ยืดหยุ่น เหมาะกับการทำ Aggregation Pipeline เพื่อสร้าง Derived View |
-| **Testing** | Bun Test | รัน Unit Tests รวมทั้งสิ้น **104 tests (245 assertions)** ได้รวดเร็วระดับมิลลิวินาที (100% Passing) |
+| **Testing** | Bun Test | รัน Unit Tests รวมทั้งสิ้น **106 tests (266 assertions)** ได้รวดเร็วระดับมิลลิวินาที (100% Passing) |
 
 ---
 

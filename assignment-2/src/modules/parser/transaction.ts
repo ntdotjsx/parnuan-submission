@@ -1,4 +1,4 @@
-import type { Transaction } from "../../types"
+import type { Transaction } from "./types"
 import { extractDate } from "./date"
 import { splitCandidates, parseCandidate } from "./candidate"
 
