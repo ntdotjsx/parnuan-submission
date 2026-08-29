@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { findCategory } from '../utils'
+import { findCategory } from '../modules/utils'
 
 describe('findCategory', () => {
     it('should return food category for food-related description', () => {

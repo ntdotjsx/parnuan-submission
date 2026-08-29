@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { extractDate } from '../parser/date'
+import { extractDate } from '../modules/parser/date'
 
 describe('extractDate', () => {
     it('should extract yesterday date', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseTransactions } from '../parser/transaction'
+import { parseTransactions } from '../modules/parser/transaction'
 
 describe('parseTransactions', () => {
     it('should parse a single transaction', () => {

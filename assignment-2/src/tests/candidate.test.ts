@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
     splitCandidates,
     parseCandidate,
-} from '../parser/candidate'
+} from '../modules/parser/candidate'
 
 describe('splitCandidates', () => {
     it('should parse a single transaction', () => {

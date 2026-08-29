@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { Eta } from 'eta'
 import { serveStatic } from 'hono/bun'
-import { parseTransactions } from './parser/transaction' // import the parseTransactions function from the transaction parser module
+import { parseTransactions } from './modules/parser/transaction' // import the parseTransactions function from the transaction parser module
 
 const app = new Hono()
 

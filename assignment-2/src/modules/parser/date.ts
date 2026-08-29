@@ -1,4 +1,4 @@
-import type { ExtractDateResult } from "../types"
+import type { ExtractDateResult } from "../../types"
 
 /**
  * Extract date/time from Thai text.
