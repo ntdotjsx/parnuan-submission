@@ -5,28 +5,48 @@ import { parseTransactions } from '../modules/parser/transaction'
 const eta = new Eta({ views: './src/views' })
 export const uiRouter = new Hono()
 
+/**
+ * GET /
+ * เรนเดอร์หน้าหลัก (index.eta) ที่มีฟอร์มสำหรับพิมพ์ข้อความบันทึกรายจ่ายและตัวอย่างการใช้งาน
+ */
 uiRouter.get('/', async (c) => {
     const html = await eta.renderAsync('index', { title: 'Parnuan Take-Home' })
     return c.html(html)
 })
 
+/**
+ * POST /ui/parse
+ * รับข้อความดิบจากฟอร์มหน้าแรก แปลงเป็นรายการธุรกรรม (Transactions)
+ * และเรนเดอร์หน้าตรวจสอบรายการ (review.eta) ส่งกลับไปแสดงผลผ่าน HTMX
+ */
 uiRouter.post('/ui/parse', async (c) => {
     const body = await c.req.parseBody()
     const text = String(body.text ?? '')
+    if (text.length > 5_000) {
+        return c.html(`
+            <div class="bg-red-50 border border-red-300 rounded-2xl p-6 text-center text-red-800">
+                ข้อความยาวเกินไป (จำกัดไม่เกิน 5,000 ตัวอักษร)
+            </div>
+        `, 400)
+    }
     const transactions = parseTransactions(text)
     const html = await eta.renderAsync('review', { transactions })
     return c.html(html)
 })
-
+/**
+ * POST /ui/confirm
+ * ตรวจสอบความถูกต้องและบันทึกรายการที่ยืนยันจากหน้า Review (HTMX):
+ * - ป้องกันปัญหาภัยพิบัติระดับหมอลํา XSS Attack
+ * - คัดกรองและ Validate ชื่อรายการ, จำนวนเงิน (> 0), และหมวดหมู่
+ * - คืนค่า HTML สรุปผลการบันทึกสำเร็จ หรือแสดงข้อความแจ้งเตือนเมื่อข้อมูลไม่ถูกต้อง
+ */
 uiRouter.post('/ui/confirm', async (c) => {
     const body = await c.req.parseBody({ all: true })
 
-    console.log('Confirmed:', body)
-
     const toArray = (val: unknown): string[] => {
         if (val === undefined || val === null) return []
-        if (Array.isArray(val)) return val.map((v) => String(v))
-        return [String(val)]
+        if (Array.isArray(val)) return val.map((v) => String(v).trim())
+        return [String(val).trim()]
     }
 
     const descriptions = toArray(body.description)
@@ -34,7 +54,7 @@ uiRouter.post('/ui/confirm', async (c) => {
     const categories = toArray(body.category)
     const dates = toArray(body.date)
 
-    const categoryMap: Record<string, { label: string; icon: string; color: string }> = {
+    const CATEGORY_MAP: Record<string, { label: string; icon: string; color: string }> = {
         food: { label: 'อาหาร', icon: '🍔', color: 'bg-orange-50 text-orange-700 border-orange-200' },
         shopping: { label: 'ช้อปปิ้ง', icon: '🛍️', color: 'bg-purple-50 text-purple-700 border-purple-200' },
         transport: { label: 'เดินทาง', icon: '🚗', color: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -49,27 +69,50 @@ uiRouter.post('/ui/confirm', async (c) => {
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;')
 
-    const items = descriptions.map((desc, i) => {
-        const amt = parseFloat(amounts[i] ?? '0') || 0
-        const catKey = categories[i] ?? 'other'
-        const cat = categoryMap[catKey] ?? {
-            label: catKey,
-            icon: '🏷️',
-            color: 'bg-slate-50 text-slate-700 border-slate-200',
-        }
-        const dateStr = dates[i]
-        const d = dateStr ? new Date(dateStr) : new Date()
-        const formattedDate = !isNaN(d.getTime())
-            ? `${d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.`
-            : 'วันนี้'
+    // คัดกรองและ Validate แต่ละรายการ (จับคู่ Array อย่างปลอดภัย)
+    const items = descriptions
+        .map((desc, i) => {
+            const rawAmount = parseFloat(amounts[i] ?? '')
+            const rawCat = categories[i] ?? 'other'
 
-        return {
-            description: desc,
-            amount: amt,
-            category: cat,
-            date: formattedDate,
-        }
-    })
+            // ป้องกัน Category ปลอม ถ้าไม่มีในระบบให้ตกเป็น 'other'
+            const cat = CATEGORY_MAP[rawCat] ?? CATEGORY_MAP.other
+
+            // ตรวจสอบความถูกต้องของ Description และ Amount
+            const isDescValid = desc.length > 0 && desc.length <= 255
+            const isAmountValid = Number.isFinite(rawAmount) && rawAmount > 0 && rawAmount <= 1_000_000_000
+
+            if (!isDescValid || !isAmountValid) {
+                return null // ข้ามแถวที่ข้อมูลไม่ถูกต้อง
+            }
+
+            const dateStr = dates[i]
+            const d = dateStr ? new Date(dateStr) : new Date()
+            const formattedDate = !isNaN(d.getTime())
+                ? `${d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.`
+                : 'วันนี้'
+
+            return {
+                description: desc,
+                amount: rawAmount,
+                category: cat,
+                date: formattedDate,
+            }
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null)
+
+    // กรณีไม่มีรายการที่ถูกต้องเลย
+    if (items.length === 0) {
+        return c.html(`
+            <div class="bg-red-50 border border-red-300 rounded-2xl p-6 text-center text-red-800 flex flex-col items-center gap-2">
+                <span class="text-3xl">⚠️</span>
+                <h3 class="text-base font-bold">ข้อมูลรายการไม่ถูกต้อง</h3>
+                <p class="text-xs sm:text-sm text-red-600">
+                    กรุณาตรวจสอบชื่อรายการและจำนวนเงิน (ต้องเป็นตัวเลขที่มากกว่า 0)
+                </p>
+            </div>
+        `, 400)
+    }
 
     const totalAmount = items.reduce((sum, item) => sum + item.amount, 0)
 
@@ -85,10 +128,10 @@ uiRouter.post('/ui/confirm', async (c) => {
                 <span class="text-sm font-semibold text-slate-800">${escapeHtml(item.description)}</span>
                 <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
                     <span class="text-xs ${item.category.color} border px-2 py-0.5 rounded-md inline-flex items-center gap-1 font-medium">
-                    <span>${item.category.icon}</span> ${item.category.label}
+                    <span>${item.category.icon}</span> ${escapeHtml(item.category.label)}
                     </span>
                     <span class="text-xs text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1 font-medium">
-                    <span>📅</span> ${item.date}
+                    <span>📅</span> ${escapeHtml(item.date)}
                     </span>
                 </div>
                 </div>

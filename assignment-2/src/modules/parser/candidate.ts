@@ -94,7 +94,35 @@ export function parseCandidate(
     const description = match[1].trim()
     const amount = Number(match[2])
 
-    if (!description || Number.isNaN(amount) || amount <= 0) return null
+    /**
+     * Validation ข้อมูล Transaction
+     *
+     * ตรวจสอบว่า:
+     * - description ต้องไม่ว่าง และมีความยาวไม่เกิน 255 ตัวอักษร
+     * - amount ต้องเป็นตัวเลขที่มีค่าจริง (finite number)
+     * - amount ต้องมากกว่า 0
+     * - amount ต้องไม่เกิน 1,000,000,000
+     *
+     * ตัวอย่างข้อมูลที่ผ่าน:
+     *   description = "ข้าวมันไก่"
+     *   amount = 60
+     *
+     * ตัวอย่างข้อมูลที่ไม่ผ่าน:
+     *   description = ""        // ไม่มีรายละเอียด
+     *   amount = NaN             // ไม่ใช่ตัวเลขที่ถูกต้อง
+     *   amount = -50             // จำนวนเงินติดลบ
+     *   amount = 0               // จำนวนเงินต้องมากกว่า 0
+     *   amount = 1_000_000_001   // เกินขอบเขตที่กำหนด
+     */
+    if (
+        !description ||
+        description.length > 255 ||
+        !Number.isFinite(amount) ||
+        amount <= 0 ||
+        amount > 1_000_000_000
+    ) {
+        return null;
+    }
 
     // Find the most likely category for the transaction description
     const categoryResult = findCategory(description)
@@ -117,12 +145,14 @@ export function parseCandidate(
         (categoryResult.confidence * 0.7 + dateConfidence * 0.3).toFixed(2),
     )
 
+    const validDate = !isNaN(date.getTime()) ? date : new Date() // ป้องกัน Crash date.toISOString() เมื่อเจอ Invalid Date
+
     return {
         id: createId(),
         description,
         amount,
         category: categoryResult.category,
-        date: date.toISOString(),
+        date: validDate.toISOString(),
         confidence,
         warning: warning.length > 0 ? warning : undefined,
     }
