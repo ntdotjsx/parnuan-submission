@@ -1,0 +1,76 @@
+services:
+  portal:
+    build:
+      context: .
+      dockerfile: portal/Dockerfile
+    container_name: parnuan-portal
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    volumes:
+      - ./portal/index.html:/usr/share/nginx/html/index.html:ro
+      - ./README.md:/usr/share/nginx/html/docs/root-readme.md:ro
+      - ./assignment-1:/usr/share/nginx/html/docs/assignment-1:ro
+      - ./assignment-2:/usr/share/nginx/html/docs/assignment-2:ro
+    depends_on:
+      - assignment-1
+      - assignment-2
+
+  assignment-1:
+    build:
+      context: ./assignment-1
+    container_name: parnuan-assignment-1
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - PORT=3000
+
+  assignment-2:
+    build:
+      context: ./assignment-2
+    container_name: parnuan-assignment-2
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    environment:
+      - PORT=3000
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USER:-parnuan_submission}:${MONGO_ROOT_PASSWORD:-parnuan_submission_password}@mongodb:27017/parnuan?authSource=admin
+      - MONGODB_DB_NAME=parnuan
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-parnuan_submission}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-parnuan_submission_password}
+      MONGO_INITDB_DATABASE: parnuan
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  dbgate:
+    image: dbgate/dbgate:latest
+    container_name: dbgate
+    restart: unless-stopped
+    ports:
+      - "3003:3000"
+    depends_on:
+      - mongodb
+    volumes:
+      - dbgate_data:/root/.dbgate
+
+volumes:
+  mongodb_data:
+  dbgate_data:
