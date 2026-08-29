@@ -89,4 +89,46 @@ describe('extractDate', () => {
             'ข้าวมันไก่ 50 น้ำ 7',
         )
     })
+
+    it('should extract relative days like "3 วันที่ 11โมง"', () => {
+        const result = extractDate('3 วันที่ 11โมง ข้าวมันไก่ 50')
+        const expected = new Date()
+        expected.setDate(expected.getDate() - 3)
+
+        expect(result.date.toDateString()).toBe(expected.toDateString())
+        expect(result.date.getHours()).toBe(11)
+        expect(result.date.getMinutes()).toBe(0)
+        expect(result.cleanedText).toBe('ข้าวมันไก่ 50')
+    })
+
+    it('should extract relative days like "2 วันที่แล้ว 10 โมง"', () => {
+        const result = extractDate('2 วันที่แล้ว 10 โมง ข้าวมันไก่ 50')
+        const expected = new Date()
+        expected.setDate(expected.getDate() - 2)
+
+        expect(result.date.toDateString()).toBe(expected.toDateString())
+        expect(result.date.getHours()).toBe(10)
+        expect(result.date.getMinutes()).toBe(0)
+        expect(result.cleanedText).toBe('ข้าวมันไก่ 50')
+    })
+
+    it('should extract spoken minutes like "5 โมง 11"', () => {
+        const result = extractDate('5 โมง 11 ข้าวมันไก่ 50')
+
+        expect(result.date.getHours()).toBe(17)
+        expect(result.date.getMinutes()).toBe(11)
+        expect(result.cleanedText).toBe('ข้าวมันไก่ 50')
+    })
+
+    it('should extract "6 เย็นโมง 20 นาที" and "6 โมงเย็น 20 นาที"', () => {
+        const result1 = extractDate('6 เย็นโมง 20 นาที bts 45')
+        expect(result1.date.getHours()).toBe(18)
+        expect(result1.date.getMinutes()).toBe(20)
+        expect(result1.cleanedText).toBe('bts 45')
+
+        const result2 = extractDate('6 โมงเย็น 20 นาที bts 45')
+        expect(result2.date.getHours()).toBe(18)
+        expect(result2.date.getMinutes()).toBe(20)
+        expect(result2.cleanedText).toBe('bts 45')
+    })
 })

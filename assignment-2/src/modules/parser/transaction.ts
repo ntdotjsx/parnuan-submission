@@ -21,38 +21,39 @@ export function parseTransactions(
     input: string,
 ): Transaction[] {
     /**
-     * Extracts a date and optional time reference from Thai text.
-     *
-     * Supported patterns:
-     * - เมื่อวาน
-     * - เมื่อวานตอน 5 โมง
-     * - เมื่อวานตอน 5 โมงครึ่ง
-     *
-     * Returns the resolved date and the input text with the
-     * recognized date/time expression removed.
+     * ดึงข้อมูลวันและเวลาในระดับข้อความรวม (Global Date Result)
      */
-    // 1: Extract date/time information
-    const dateResult = extractDate(input)
+    const globalDateResult = extractDate(input)
+
     /**
-     * Splits a message into individual transaction candidates.
-     *
-     * Supports multiple transactions separated by Thai conjunctions
-     * such as "และ" and "แล้วก็".
+     * แยกข้อความออกเป็นส่วนย่อยตามคำเชื่อมภาษาไทย
      */
-    // 2: Split the remaining text into transaction candidates
-    const candidates = splitCandidates(
-        dateResult.cleanedText,
-    )
-    // 3: Parse each candidate into a structured Transaction object
+    const candidates = splitCandidates(input)
+
+    /**
+     * แปลงแต่ละ Candidate เป็น Transaction Document พร้อมตรวจสอบวันเวลาเฉพาะจุด
+     */
     return candidates
-        .map((candidate) =>
-            parseCandidate(
-                candidate,
-                dateResult.date,
-                dateResult.confidence,
-                dateResult.warning
-            ),
-        )
+        .map((candidate) => {
+            const candidateDateResult = extractDate(candidate)
+            const hasSpecificDate = candidateDateResult.confidence !== 0.7
+            const resolvedDate = hasSpecificDate
+                ? candidateDateResult.date
+                : globalDateResult.date
+            const resolvedConfidence = hasSpecificDate
+                ? candidateDateResult.confidence
+                : globalDateResult.confidence
+            const resolvedWarning = hasSpecificDate
+                ? candidateDateResult.warning
+                : globalDateResult.warning
+
+            return parseCandidate(
+                candidateDateResult.cleanedText,
+                resolvedDate,
+                resolvedConfidence,
+                resolvedWarning,
+            )
+        })
         .filter(
             (transaction): transaction is Transaction =>
                 transaction !== null,

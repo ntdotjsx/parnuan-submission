@@ -1,31 +1,8 @@
 import type { ExtractDateResult } from "../../types"
 
 /**
- * Extract date/time from Thai text.
+ * Resolves the time offset based on the period word.
  *
- * Supported examples:
- *
- * เมื่อวาน
- * เมื่อวานตอน 5 โมง
- * เมื่อวานตอน 5 โมงครึ่ง
- * เมื่อวานตอน 5 โมงเย็น
- * เมื่อวานตอน 5 โมงเช้า
- * เมื่อวานตอนเที่ยง
- *
- * NOTE on Thai time ambiguity:
- * Thai "X โมง" is genuinely ambiguous without a period word (เช้า/บ่าย/เย็น/ทุ่ม/ตี).
- * "5 โมง" alone could mean 05:00 or 17:00 depending on context/dialect.
- * This POC does NOT attempt to fully solve that — it:
- *   1. Uses an explicit period word when present (high confidence).
- *   2. Falls back to a documented guess when absent (low confidence, explicit warning).
- * A production version would need a fuller Thai time-of-day parser and/or
- * ask the user to disambiguate in the review step.
- */
-
-// Maps a detected period word to how many hours to add to the 1-12 "โมง" number.
-// null = ambiguous, needs a guess.
-
-/** Resolves the time offset based on the period word.
  * @param period - The Thai period word (เช้า, บ่าย, เย็น, ทุ่ม, ตี).
  * @returns An object containing the offset in hours and a label for the period.
  */
@@ -35,19 +12,14 @@ function resolvePeriodOffset(period: string | undefined): {
 } {
     switch (period) {
         case "เช้า":
-            // 1-11 โมงเช้า => 01:00-11:00 (as spoken); "6 โมงเช้า" = 06:00
             return { offsetHours: 0, label: "morning" }
         case "บ่าย":
-            // บ่ายโมง = 13:00, บ่าย 2-4 โมง = 14:00-16:00
             return { offsetHours: 12, label: "afternoon" }
         case "เย็น":
-            // 5-6 โมงเย็น = 17:00-18:00
             return { offsetHours: 12, label: "evening" }
         case "ทุ่ม":
-            // 1-5 ทุ่ม (spoken without โมง, handled separately) = 19:00-23:00
             return { offsetHours: 18, label: "night" }
         case "ตี":
-            // ตี 1 - ตี 5 = 01:00-05:00
             return { offsetHours: 0, label: "late night / early morning" }
         default:
             return { offsetHours: null, label: "unspecified" }
@@ -56,6 +28,7 @@ function resolvePeriodOffset(period: string | undefined): {
 
 /**
  * Builds a warning message for the extracted date/time.
+ *
  * @param params - An object containing details about the extracted time.
  * @returns A warning message string.
  */
@@ -78,77 +51,203 @@ function buildWarning(params: {
 }
 
 /**
- * Extracts a date and optional time reference from Thai text.
+ * Extracts a date and optional time reference from Thai natural language text.
+ *
+ * Supports patterns such as:
+ * - Relative days: "3 วันที่", "2 วันที่แล้ว", "3 วันก่อน", "เมื่อวานซืน", "เมื่อวาน", "วันนี้"
+ * - Spoken hours with minutes: "5 โมง 11", "5 โมง 11 นาที", "6 เย็นโมง 20 นาที", "6 โมงเย็น 20 นาที"
+ * - Period-based times: "บ่าย 2 โมง 10 นาที", "ตี 4 ครึ่ง", "2 ทุ่ม 15 นาที", "เที่ยงครึ่ง", "เที่ยงคืน"
+ *
  * @param text - The input text containing a date/time reference.
  * @returns An object containing the extracted date, cleaned text, confidence score, and an optional warning.
  */
 export function extractDate(text: string): ExtractDateResult {
     const now = new Date()
+    let daysAgo: number | null = null
+    let rawDateMatch = ""
+    let textToClean = text
 
-    // Matches: เมื่อวาน(ตอน)? <1-12> โมง(ครึ่ง)? (เช้า|บ่าย|เย็น|ทุ่ม|ตี)?
-    const timeMatch = text.match(
-        /เมื่อวาน(?:ตอน)?\s*(\d{1,2})\s*โมง(ครึ่ง)?\s*(เช้า|บ่าย|เย็น|ทุ่ม|ตี)?/,
+    /**
+     * Relative day expression extraction
+     */
+    const relativeDaysMatch = textToClean.match(/(\d+)\s*วัน(?:ที่แล้ว|ก่อน|ที่)/)
+    if (relativeDaysMatch) {
+        daysAgo = parseInt(relativeDaysMatch[1], 10)
+        rawDateMatch = relativeDaysMatch[0]
+        textToClean = textToClean.replace(relativeDaysMatch[0], " ")
+    } else if (textToClean.includes("เมื่อวานซืน")) {
+        daysAgo = 2
+        rawDateMatch = "เมื่อวานซืน"
+        textToClean = textToClean.replace("เมื่อวานซืน", " ")
+    } else if (textToClean.includes("เมื่อวาน")) {
+        daysAgo = 1
+        rawDateMatch = "เมื่อวาน"
+        textToClean = textToClean.replace("เมื่อวาน", " ")
+    } else if (textToClean.includes("วันนี้")) {
+        daysAgo = 0
+        rawDateMatch = "วันนี้"
+        textToClean = textToClean.replace("วันนี้", " ")
+    }
+
+    let parsedHour: number | null = null
+    let parsedMinute = 0
+    let periodLabel = "unspecified"
+    let guessed = false
+    let timeMatched = false
+    let rawTimeMatch = ""
+
+    /**
+     * Noon and midnight patterns (เที่ยง / เที่ยงคืน)
+     */
+    const noonMatch = textToClean.match(
+        /(?:ตอน)?\s*(เที่ยงคืน|เที่ยงวัน|เที่ยง)(?:\s*(?:(ครึ่ง)|(\d{1,2})\s*นาที|(\d{1,2})))?/,
     )
+    if (noonMatch) {
+        timeMatched = true
+        rawTimeMatch = noonMatch[0].trim()
+        const isMidnight = noonMatch[1] === "เที่ยงคืน"
+        parsedHour = isMidnight ? 0 : 12
+        if (noonMatch[2]) {
+            parsedMinute = 30
+        } else if (noonMatch[3]) {
+            parsedMinute = parseInt(noonMatch[3], 10)
+        } else if (noonMatch[4]) {
+            const m = parseInt(noonMatch[4], 10)
+            if (m < 60) parsedMinute = m
+        }
+        periodLabel = isMidnight ? "midnight" : "noon"
+        textToClean = textToClean.replace(noonMatch[0], " ")
+    }
 
-    if (timeMatch) {
-        const rawHour = Number(timeMatch[1])
-        const hasHalfHour = Boolean(timeMatch[2])
-        const period = timeMatch[3]
-
-        // Guard against garbage input like "13 โมง" or "0 โมง"
-        if (!Number.isInteger(rawHour) || rawHour < 1 || rawHour > 12) {
-            return {
-                date: now,
-                cleanedText: text,
-                confidence: 0.3,
-                warning: `Found a time-like phrase ("${timeMatch[0]}") but the hour (${rawHour}) is out of the expected 1-12 range; ignoring it and using the current date/time instead.`,
+    /**
+     * Early morning dawn patterns (ตี 1 - ตี 12)
+     */
+    if (!timeMatched) {
+        const dawnMatch = textToClean.match(
+            /(?:ตอน)?\s*ตี\s*(\d{1,2})(?:\s*(?:โมง|ครึ่ง|(\d{1,2})\s*นาที|(\d{1,2})))?/,
+        )
+        if (dawnMatch) {
+            const h = parseInt(dawnMatch[1], 10)
+            if (h >= 1 && h <= 12) {
+                timeMatched = true
+                rawTimeMatch = dawnMatch[0].trim()
+                parsedHour = h === 12 ? 0 : h
+                if (dawnMatch[0].includes("ครึ่ง")) {
+                    parsedMinute = 30
+                } else if (dawnMatch[2]) {
+                    parsedMinute = parseInt(dawnMatch[2], 10)
+                } else if (dawnMatch[3]) {
+                    const m = parseInt(dawnMatch[3], 10)
+                    if (m < 60) parsedMinute = m
+                }
+                periodLabel = "late night / early morning"
+                textToClean = textToClean.replace(dawnMatch[0], " ")
             }
         }
+    }
 
-        const { offsetHours, label } = resolvePeriodOffset(period)
-        const guessed = offsetHours === null
+    /**
+     * Evening night patterns (1 ทุ่ม - 12 ทุ่ม)
+     */
+    if (!timeMatched) {
+        const nightMatch = textToClean.match(
+            /(?:ตอน)?\s*(\d{1,2})\s*ทุ่ม(?:\s*(?:ครึ่ง|(\d{1,2})\s*นาที|(\d{1,2})))?/,
+        )
+        if (nightMatch) {
+            const h = parseInt(nightMatch[1], 10)
+            if (h >= 1 && h <= 12) {
+                timeMatched = true
+                rawTimeMatch = nightMatch[0].trim()
+                parsedHour = 18 + (h === 12 ? 0 : h)
+                if (nightMatch[0].includes("ครึ่ง")) {
+                    parsedMinute = 30
+                } else if (nightMatch[2]) {
+                    parsedMinute = parseInt(nightMatch[2], 10)
+                } else if (nightMatch[3]) {
+                    const m = parseInt(nightMatch[3], 10)
+                    if (m < 60) parsedMinute = m
+                }
+                periodLabel = "night"
+                textToClean = textToClean.replace(nightMatch[0], " ")
+            }
+        }
+    }
 
-        // Fallback guess when no period word is given: assume afternoon/evening,
-        // since that's the most common case for meal/expense logging in practice.
-        // This is an explicit, documented assumption — not a hidden default.
-        const finalOffset = offsetHours ?? 12
+    /**
+     * Thai spoken hour patterns (X โมง / X เย็นโมง / X โมงเย็น / บ่าย X โมง)
+     */
+    if (!timeMatched) {
+        const mongMatch = textToClean.match(
+            /(?:ตอน)?\s*(?:(บ่าย)\s*)?(\d{1,2})\s*(?:(เย็น|เช้า|บ่าย)\s*โมง|โมง\s*(เย็น|เช้า|บ่าย)?|โมง)(?:\s*(?:(ครึ่ง)|(\d{1,2})\s*นาที|(\d{1,2})(?!\s*(?:บาท|บ\.|k\b))))?/,
+        )
+        if (mongMatch) {
+            const rawHour = parseInt(mongMatch[2], 10)
+            if (rawHour >= 1 && rawHour <= 12) {
+                timeMatched = true
+                rawTimeMatch = mongMatch[0].trim()
+                const period = mongMatch[1] || mongMatch[3] || mongMatch[4]
+                const { offsetHours, label } = resolvePeriodOffset(period)
+                guessed = offsetHours === null
+                const finalOffset = offsetHours !== null ? offsetHours : (rawHour <= 6 ? 12 : 0)
 
-        let hour24 = rawHour === 12 ? 0 : rawHour
-        hour24 = (hour24 + finalOffset) % 24
+                let h24 = rawHour === 12 ? 0 : rawHour
+                h24 = (h24 + finalOffset) % 24
+                parsedHour = h24
+                periodLabel = guessed ? "guessed" : label
 
-        const date = new Date(now)
-        date.setDate(date.getDate() - 1)
-        date.setHours(hour24, hasHalfHour ? 30 : 0, 0, 0)
+                if (mongMatch[5]) {
+                    parsedMinute = 30
+                } else if (mongMatch[6]) {
+                    parsedMinute = parseInt(mongMatch[6], 10)
+                } else if (mongMatch[7]) {
+                    const m = parseInt(mongMatch[7], 10)
+                    if (m < 60) parsedMinute = m
+                }
 
+                textToClean = textToClean.replace(mongMatch[0], " ")
+            }
+        }
+    }
+
+    const date = new Date(now)
+    if (daysAgo !== null) {
+        date.setDate(date.getDate() - daysAgo)
+    }
+
+    if (parsedHour !== null) {
+        date.setHours(parsedHour, parsedMinute, 0, 0)
+    }
+
+    const cleanedText = textToClean.replace(/\s+/g, " ").trim()
+
+    /**
+     * Determine confidence and warning descriptions
+     */
+    if (timeMatched) {
+        const combinedRaw = [rawDateMatch, rawTimeMatch].filter(Boolean).join(" ")
         const warning = buildWarning({
-            rawMatch: timeMatch[0],
-            hour: hour24,
-            minute: hasHalfHour ? 30 : 0,
-            periodLabel: guessed ? "guessed" : label,
+            rawMatch: combinedRaw,
+            hour: parsedHour ?? date.getHours(),
+            minute: parsedMinute,
+            periodLabel: guessed ? "guessed" : periodLabel,
             guessed,
         })
 
         return {
             date,
-            cleanedText: text.replace(timeMatch[0], "").trim(),
-            // Explicit period word => high confidence.
-            // Guessed period => noticeably lower confidence, since AM/PM
-            // ambiguity is a real source of error, not a minor detail.
+            cleanedText,
             confidence: guessed ? 0.55 : 0.9,
             warning,
         }
     }
 
-    if (text.includes("เมื่อวาน")) {
-        const date = new Date(now)
-        date.setDate(date.getDate() - 1)
-
+    if (daysAgo !== null) {
+        const dayLabel = daysAgo === 1 ? "yesterday" : `${daysAgo} days ago`
         return {
             date,
-            cleanedText: text.replace("เมื่อวาน", "").trim(),
+            cleanedText,
             confidence: 0.9,
-            warning:
-                "Date set to yesterday; no specific time was mentioned, so the current time was kept.",
+            warning: `Date set to ${dayLabel}; no specific time was mentioned, so the current time was kept.`,
         }
     }
 

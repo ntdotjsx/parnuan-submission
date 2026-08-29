@@ -79,7 +79,7 @@
     <div class="mx-auto max-w-7xl flex flex-col gap-6">
 
       <!-- Top Header Navbar -->
-      <header class="flex flex-col sm:flex-row sm:items-center justify-between bg-white border border-slate-200/80 rounded-2xl px-5 py-4 shadow-xs gap-4">
+      <header class="flex flex-col sm:flex-row sm:items-center justify-between bg-white  rounded-2xl px-5 py-4 shadow-xs gap-4">
         <div class="flex items-center gap-3">
           <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#d53583] to-[#9c1356] flex items-center justify-center text-white shadow-md shadow-pink-500/20 shrink-0">
             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -97,20 +97,40 @@
           </div>
         </div>
 
-        <!-- Quick Switcher Dropdown in Header -->
-        <div class="flex items-center gap-3">
-          <label for="header-user-select" class="text-xs text-slate-400 font-medium">สลับผู้ใช้:</label>
-          <div class="relative flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 hover:border-pink-300 transition-all">
-            <select id="header-user-select" onchange="window.location.href = '/?userId=' + this.value" class="appearance-none bg-transparent pr-6 text-xs font-bold text-slate-800 focus:outline-none cursor-pointer">
-              <% it.users.forEach((u) => { %>
-                <option value="<%= u.id %>" <%= (u.id === it.currentUser.id) ? 'selected' : '' %>>
-                  <%= u.name %> (<%= u.id %>)
-                </option>
-              <% }) %>
-            </select>
-            <svg class="w-3.5 h-3.5 text-slate-400 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        <!-- Professional User Account Switcher in Header -->
+        <div class="relative flex items-center">
+          <button type="button" onclick="toggleUserDropdown(this)" class="flex items-center gap-2.5 bg-slate-50 hover:bg-slate-100/90 rounded-xl px-3 py-1.5 transition-all shadow-2xs hover:border-pink-300 focus:outline-none focus:ring-2 focus:ring-pink-500/20 cursor-pointer group">
+            <img src="<%= it.currentUser.avatar %>" alt="<%= it.currentUser.name %>" class="w-6 h-6 rounded-full object-cover ring-1 ring-slate-200 shrink-0" />
+            <div class="flex items-center gap-1.5 text-left">
+              <span class="text-xs font-bold text-slate-800 group-hover:text-slate-900"><%= it.currentUser.name %></span>
+              <span class="text-[11px] text-slate-400 font-mono hidden sm:inline">(<%= it.currentUser.id %>)</span>
+            </div>
+            <svg class="w-4 h-4 text-slate-400 group-hover:text-[#d53583] transition-transform duration-200 shrink-0 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
             </svg>
+          </button>
+
+          <!-- User Switcher Popover Menu -->
+          <div id="header-user-menu" class="hidden absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-xl p-1.5 z-50 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150">
+            <div class="px-3 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+              สลับบัญชีผู้ใช้งาน
+            </div>
+            <% it.users.forEach((u) => { %>
+              <a href="/?userId=<%= u.id %>" class="flex items-center justify-between px-3 py-2 rounded-xl transition-all <%= (u.id === it.currentUser.id) ? 'bg-pink-50/80 text-[#d53583] font-bold' : 'hover:bg-slate-50 text-slate-700 font-medium' %>">
+                <div class="flex items-center gap-2.5">
+                  <img src="<%= u.avatar %>" alt="<%= u.name %>" class="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200 shrink-0" />
+                  <div class="flex flex-col text-left">
+                    <span class="text-xs"><%= u.name %></span>
+                    <span class="text-[10px] text-slate-400 font-mono"><%= u.id %></span>
+                  </div>
+                </div>
+                <% if (u.id === it.currentUser.id) { %>
+                  <svg class="w-4 h-4 text-[#d53583]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                  </svg>
+                <% } %>
+              </a>
+            <% }) %>
           </div>
         </div>
       </header>
@@ -119,53 +139,59 @@
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
         <!-- ================= SIDEBAR COLUMN (Left: 4 Cols) ================= -->
-        <aside class="lg:col-span-4 flex flex-col gap-5 sticky top-6">
+        <aside class="lg:col-span-4 flex flex-col gap-5 lg:sticky lg:top-6">
 
           <!-- User Profile & Memory Settings Card -->
-          <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col gap-4">
+          <div class="bg-white rounded-2xl p-5 shadow-xs flex flex-col gap-4">
             <!-- Active User Display -->
-            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
                 <div class="relative shrink-0">
-                  <img src="<%= it.currentUser.avatar %>" alt="<%= it.currentUser.name %>" class="w-12 h-12 rounded-full object-cover ring-2 ring-pink-500/20 border border-white shadow-xs" />
-                  <span id="user-avatar-dot" class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white <%= it.memoryEnabled ? 'bg-emerald-500' : 'bg-slate-400' %> transition-all"></span>
+                  <img src="<%= it.currentUser.avatar %>" alt="<%= it.currentUser.name %>" class="w-11 h-11 rounded-full object-cover ring-2 ring-pink-500/20 border border-white shadow-2xs" />
+                  <span id="user-avatar-dot" class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white <%= it.memoryEnabled ? 'bg-emerald-500' : 'bg-slate-400' %> transition-all"></span>
                 </div>
                 <div class="flex flex-col">
-                  <span class="text-sm font-bold text-slate-900"><%= it.currentUser.name %></span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-bold text-slate-900"><%= it.currentUser.name %></span>
+                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                      ผู้ใช้งาน
+                    </span>
+                  </div>
                   <span class="text-xs text-slate-400 font-mono"><%= it.currentUser.id %></span>
                 </div>
               </div>
-            </div>
 
-            <!-- Memory Mode Toggle Switch -->
-            <div class="bg-slate-50 border border-slate-100 rounded-xl p-3.5 flex flex-col gap-2.5">
-              <div class="flex items-center justify-between">
-                <div class="flex flex-col">
-                  <span class="text-xs font-bold text-slate-800">โหมดจัดหมวดด้วยความจำ</span>
-                  <span class="text-[11px] text-slate-500">แนะนำหมวดจากประวัติ</span>
-                </div>
-
-                <!-- HTMX Toggle Form -->
-                <form hx-post="/ui/settings/memory" hx-target="#toggle-status" hx-swap="innerHTML" class="flex items-center">
-                  <input type="hidden" name="userId" value="<%= it.currentUser.id %>">
-                  <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" name="enabled" value="true" onchange="this.form.requestSubmit()" <%= it.memoryEnabled ? 'checked' : '' %> class="sr-only peer">
-                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#d53583]"></div>
-                  </label>
-                </form>
-              </div>
-
-              <!-- Toggle Status Badge -->
-              <div id="toggle-status" class="flex justify-end">
-                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border <%= it.memoryEnabled ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200' %> transition-all">
-                  <%= it.memoryEnabled ? 'เปิดใช้งานความจำแล้ว' : 'ปิดใช้งานความจำแล้ว' %>
+              <!-- Quick Status Indicator -->
+              <div id="user-memory-badge">
+                <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border <%= it.memoryEnabled ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80' : 'bg-slate-100 text-slate-600 border-slate-200' %> transition-all">
+                  <span class="w-1.5 h-1.5 rounded-full <%= it.memoryEnabled ? 'bg-emerald-500' : 'bg-slate-400' %>"></span>
+                  <%= it.memoryEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน' %>
                 </span>
               </div>
+            </div>
+
+            <!-- Memory Mode Toggle Item -->
+            <div class="p-3.5 bg-slate-50/70 border border-slate-200/70 rounded-xl flex items-center justify-between gap-3 hover:border-pink-200/80 hover:bg-pink-50/30 transition-all">
+              <div class="flex items-center gap-3">
+                <div class="flex flex-col">
+                  <span class="text-xs font-bold text-slate-800">โหมดจัดหมวดด้วยความจำ</span>
+                  <span class="text-[11px] text-slate-500">แนะนำหมวดหมู่อัตโนมัติจากประวัติ</span>
+                </div>
+              </div>
+
+              <!-- HTMX Toggle Switch -->
+              <form hx-post="/ui/settings/memory" hx-target="#user-memory-badge" hx-swap="outerHTML" class="flex items-center shrink-0">
+                <input type="hidden" name="userId" value="<%= it.currentUser.id %>">
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" name="enabled" value="true" onchange="this.form.requestSubmit()" <%= it.memoryEnabled ? 'checked' : '' %> class="sr-only peer">
+                  <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#d53583] shadow-inner"></div>
+                </label>
+              </form>
             </div>
           </div>
 
           <!-- Inspectable Memory Insights Sidebar Card -->
-          <div id="memory-insights-card" class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col gap-4">
+          <div id="memory-insights-card" class="bg-white rounded-2xl p-5 shadow-xs flex flex-col gap-3.5">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
               <div class="flex items-center gap-2">
                 <h2 class="text-sm font-bold text-slate-900">สิ่งที่ระบบจำได้ (Memory Insights)</h2>
@@ -176,7 +202,7 @@
                     ล้างทั้งหมด
                   </button>
                 <% } %>
-                <span class="text-[11px] bg-pink-50 text-[#d53583] font-bold px-2.5 py-0.5 rounded-full border border-pink-200">
+                <span id="memory-count-badge" class="text-[11px] bg-pink-50 text-[#d53583] font-bold px-2.5 py-0.5 rounded-full border border-pink-200">
                   <%= it.memories.length %> คำ
                 </span>
               </div>
@@ -186,14 +212,22 @@
               คำศัพท์ที่เรียนรู้จากประวัติของ <strong class="text-slate-700"><%= it.currentUser.name %></strong>
             </p>
 
+            <% if (it.memories.length > 0) { %>
+              <%~ include('components/filter-bar', { scope: 'mem', placeholder: 'ค้นหาคำศัพท์ หรือหมวดหมู่...', compact: true, showCategoryPills: true }) %>
+            <% } %>
+
             <% if (it.memories.length === 0) { %>
-              <div class="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-5 text-center text-slate-500 text-xs">
+              <div class="bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-5 text-center text-slate-500 text-xs">
                 ยังไม่มีความจำที่บันทึกไว้สำหรับผู้ใช้นี้ (ทดลองพิมพ์และกดยืนยันบันทึกทางขวาเพื่อสอนระบบ)
               </div>
             <% } else { %>
-              <div class="flex flex-col gap-2 max-h-[380px] overflow-y-auto pr-1">
+              <div id="memory-items-container" class="flex flex-col gap-2 max-h-[340px] overflow-y-auto pr-1">
                 <% it.memories.forEach((mem) => { %>
-                  <div class="p-3 bg-slate-50/80 border border-slate-200 rounded-xl flex flex-col gap-1.5 hover:border-pink-300 hover:bg-white transition-all shadow-2xs">
+                  <div
+                    class="memory-item-row p-3 bg-slate-50/80 rounded-xl flex flex-col gap-1.5 hover:border-pink-300 hover:bg-white transition-all shadow-2xs"
+                    data-search="<%= mem.keyword.toLowerCase() %> <%= mem.preferredCategoryTitle.toLowerCase() %>"
+                    data-category="<%= mem.preferredCategoryTitle.toLowerCase() %>"
+                  >
                     <div class="flex items-center justify-between gap-2">
                       <span class="text-xs font-bold text-slate-800 break-words"><%= mem.keyword %></span>
                       <div class="flex items-center gap-1.5 shrink-0">
@@ -213,6 +247,9 @@
                     </div>
                   </div>
                 <% }) %>
+                <div id="mem-search-empty" class="hidden bg-slate-50 border border-dashed border-slate-200 rounded-xl p-5 text-center text-slate-500 text-xs">
+                  ไม่พบคำศัพท์ที่ตรงกับการค้นหา
+                </div>
               </div>
             <% } %>
           </div>
@@ -222,7 +259,7 @@
         <main class="lg:col-span-8 flex flex-col gap-6">
 
           <!-- Input Expense Form Card -->
-          <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs">
+          <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-xs">
             <form hx-post="/ui/parse" hx-target="#review" hx-swap="innerHTML" class="flex flex-col gap-4">
               <input type="hidden" name="userId" value="<%= it.currentUser.id %>">
 
@@ -236,20 +273,23 @@
                   <span class="text-xs text-slate-400">รองรับหลายรายการ & วันที่</span>
                 </div>
 
-                <textarea id="expense-input" required name="text" rows="3" class="w-full p-3.5 text-base text-slate-800 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:border-[#d53583] focus:ring-4 focus:ring-pink-500/15 transition-all outline-none resize-y placeholder:text-slate-400" placeholder="พิมพ์ข้อความ เช่น 'ข้าวมันไก่ 50' หรือ 'เมื่อวานตอน 5 โมงครึ่ง bts 45'"></textarea>
+                <textarea id="expense-input" required name="text" rows="3" class="w-full p-3.5 text-base text-slate-800 bg-slate-50/70 rounded-xl focus:bg-white focus:border-[#d53583] focus:ring-4 focus:ring-pink-500/15 transition-all outline-none resize-y placeholder:text-slate-400" placeholder="พิมพ์ข้อความ เช่น 'ข้าวมันไก่ 50' หรือ 'เมื่อวานตอน 5 โมงครึ่ง bts 45'"></textarea>
               </div>
 
               <!-- Quick Example Chips -->
               <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
                 <span class="text-xs text-slate-400 font-medium">ตัวอย่างทดสอบ:</span>
-                <button type="button" onclick="document.getElementById('expense-input').value = 'ข้าวมันไก่ 50'; document.getElementById('expense-input').focus();" class="text-xs bg-slate-50 hover:bg-pink-50 hover:text-[#d53583] hover:border-pink-200 border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg transition-all cursor-pointer font-medium">
+                <button type="button" onclick="document.getElementById('expense-input').value = 'ข้าวมันไก่ 50'; document.getElementById('expense-input').focus();" class="text-xs bg-slate-50 hover:bg-pink-50 hover:text-[#d53583] hover:border-pink-200 text-slate-600 px-2.5 py-1 rounded-lg transition-all cursor-pointer font-medium">
                   ข้าวมันไก่ 50
                 </button>
-                <button type="button" onclick="document.getElementById('expense-input').value = 'ข้าวมันไก่ 50 น้ำเปล่า 7 แล้วก็ช้อปปิ้ง 500'; document.getElementById('expense-input').focus();" class="text-xs bg-slate-50 hover:bg-pink-50 hover:text-[#d53583] hover:border-pink-200 border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg transition-all cursor-pointer font-medium">
-                  หลายรายการพร้อมกัน
+                <button type="button" onclick="document.getElementById('expense-input').value = '3 วันที่ 11โมง ข้าวมันไก่ 50 แล้ว 2 วันที่แล้ว 10 โมง ช้อปปิ้ง 500'; document.getElementById('expense-input').focus();" class="text-xs bg-slate-50 hover:bg-pink-50 hover:text-[#d53583] hover:border-pink-200 text-slate-600 px-2.5 py-1 rounded-lg transition-all cursor-pointer font-medium">
+                  3 วันที่ 11โมง + 2 วันที่แล้ว 10 โมง
                 </button>
-                <button type="button" onclick="document.getElementById('expense-input').value = 'เมื่อวานตอน 5 โมงครึ่ง bts หมอชิต 45'; document.getElementById('expense-input').focus();" class="text-xs bg-slate-50 hover:bg-pink-50 hover:text-[#d53583] hover:border-pink-200 border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg transition-all cursor-pointer font-medium">
-                  เมื่อวานตอน 5 โมงครึ่ง bts หมอชิต 45
+                <button type="button" onclick="document.getElementById('expense-input').value = '5 โมง 11 ข้าวมันไก่ 50'; document.getElementById('expense-input').focus();" class="text-xs bg-slate-50 hover:bg-pink-50 hover:text-[#d53583] hover:border-pink-200 text-slate-600 px-2.5 py-1 rounded-lg transition-all cursor-pointer font-medium">
+                  5 โมง 11 ข้าวมันไก่ 50
+                </button>
+                <button type="button" onclick="document.getElementById('expense-input').value = '6 เย็นโมง 20 นาที bts หมอชิต 45'; document.getElementById('expense-input').focus();" class="text-xs bg-slate-50 hover:bg-pink-50 hover:text-[#d53583] hover:border-pink-200 text-slate-600 px-2.5 py-1 rounded-lg transition-all cursor-pointer font-medium">
+                  6 เย็นโมง 20 นาที bts 45
                 </button>
               </div>
 
@@ -264,52 +304,88 @@
           </div>
 
           <!-- Transaction History & Memory Edit Sync Section (Demo Flow 2) -->
-          <section class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs flex flex-col gap-4">
+          <section id="recent-transactions-card" class="bg-white rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col gap-4">
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
               <div>
-                <h2 class="text-base font-bold text-slate-900">
-                  ประวัติรายการล่าสุด (History & Real-time Edit)
-                </h2>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-base font-bold text-slate-900">
+                    ประวัติรายการล่าสุด (History & Real-time Edit)
+                  </h2>
+                  <span id="transactions-count-badge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                    <%= it.transactions.length %> รายการ
+                  </span>
+                </div>
                 <p class="text-xs text-slate-500 mt-0.5">
                   ทดสอบ Demo Flow 2: เมื่อแก้ไขหมวดหมู่ของรายการในอดีต ความจำของระบบจะเปลี่ยนตามทันที
                 </p>
               </div>
+              <div class="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/70">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Real-time Sync</span>
+              </div>
             </div>
 
+            <% if (it.transactions.length > 0) { %>
+              <%~ include('components/filter-bar', { scope: 'tx', placeholder: 'ค้นหารายการ, จำนวนเงิน, หรือ ID...', showCategoryPills: true }) %>
+            <% } %>
+
             <% if (it.transactions.length === 0) { %>
-              <div class="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-8 text-center text-slate-500 text-sm">
+              <div class="bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-8 text-center text-slate-500 text-sm">
                 ยังไม่มีประวัติรายการสำหรับ <%= it.currentUser.name %>
               </div>
             <% } else { %>
-              <div class="border border-slate-200 rounded-xl divide-y divide-slate-200 bg-white overflow-visible">
+              <div id="recent-transactions-list" class="divide-y divide-slate-100 rounded-2xl bg-white overflow-hidden">
                 <% it.transactions.forEach((tx, idx) => { %>
-                  <div class="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition-colors relative first:rounded-t-xl last:rounded-b-xl">
-                    <div class="flex items-center gap-3">
-                      <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center shrink-0">
+                  <%
+                    let formattedDate = '';
+                    if (tx.date || tx.createdAt) {
+                      try {
+                        const d = new Date(tx.date || tx.createdAt);
+                        formattedDate = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }) + ' • ' + d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }) + ' น.';
+                      } catch (e) {}
+                    }
+                    const searchString = (tx.description + ' ' + tx.amount + ' ' + tx.id + ' ' + formattedDate + ' ' + tx.categoryTitle + ' ' + tx.categoryId).toLowerCase();
+                  %>
+                  <div
+                    class="transaction-list-row p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/70 transition-colors"
+                    data-search="<%= searchString %>"
+                    data-category="<%= tx.categoryTitle.toLowerCase() %>,<%= tx.categoryId.toLowerCase() %>"
+                  >
+                    <div class="flex items-center gap-3 w-full sm:w-auto">
+                      <span class="w-8 h-8 rounded-xl bg-slate-100/90 text-slate-700 text-xs font-bold flex items-center justify-center shrink-0  shadow-2xs">
                         #<%= idx + 1 %>
                       </span>
-                      <div class="flex flex-col">
-                        <span class="text-sm font-semibold text-slate-800"><%= tx.description %></span>
-                        <span class="text-xs text-slate-400 font-mono">ID: <%= tx.id %></span>
+                      <div class="flex flex-col min-w-0">
+                        <span class="text-sm font-bold text-slate-900 truncate"><%= tx.description %></span>
+                        <div class="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                          <% if (formattedDate) { %>
+                            <span><%= formattedDate %></span>
+                            <span class="text-slate-300">•</span>
+                          <% } %>
+                          <span class="font-mono text-slate-400">#<%= tx.id.slice(0, 8) %></span>
+                        </div>
                       </div>
                     </div>
 
-                    <div class="flex items-center gap-3 justify-between sm:justify-end">
-                      <span class="text-sm font-bold text-emerald-600">
-                        <%= tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %> บาท
+                    <div class="flex items-center gap-3 justify-between sm:justify-end w-full sm:w-auto pt-2 sm:pt-0 border-t border-slate-100 sm:border-0">
+                      <span class="text-sm sm:text-base font-extrabold text-slate-900 tabular-nums shrink-0">
+                        <%= tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %> <span class="text-xs font-semibold text-slate-500">บาท</span>
                       </span>
 
                       <!-- Interactive Category Edit Form for Flow 2 Demo with Custom Dropdown Component -->
-                      <form hx-post="/ui/transactions/edit" hx-swap="none" class="flex items-center gap-2">
+                      <form hx-post="/ui/transactions/edit" hx-swap="none" class="flex items-center gap-2 shrink-0">
                         <input type="hidden" name="userId" value="<%= it.currentUser.id %>">
                         <input type="hidden" name="transactionId" value="<%= tx.id %>">
-                        <div class="w-48">
+                        <div class="w-44 sm:w-56">
                           <%~ include('components/category-dropdown', { categoryTitle: tx.categoryTitle, categoryId: tx.categoryId, name: 'categoryId', autoSubmit: true }) %>
                         </div>
                       </form>
                     </div>
                   </div>
                 <% }) %>
+                <div id="tx-search-empty" class="hidden p-8 text-center text-slate-500 text-xs">
+                  ไม่พบรายการที่ตรงกับการค้นหา
+                </div>
               </div>
             <% } %>
           </section>
@@ -347,10 +423,12 @@
 
           popover.style.position = 'fixed';
           popover.style.zIndex = '99999';
-          popover.style.width = Math.max(rect.width, 240) + 'px';
+          const maxAllowedWidth = Math.min(Math.max(rect.width, 240), window.innerWidth - 24);
+          popover.style.width = maxAllowedWidth + 'px';
+          popover.style.maxWidth = (window.innerWidth - 24) + 'px';
 
-          const rightSpace = window.innerWidth - rect.right;
-          popover.style.right = Math.max(12, rightSpace) + 'px';
+          const rightSpace = Math.max(12, window.innerWidth - rect.right);
+          popover.style.right = rightSpace + 'px';
           popover.style.left = 'auto';
 
           if (spaceBelow < popoverHeight && rect.top > popoverHeight) {
@@ -421,12 +499,26 @@
         }
       }
 
+      function toggleUserDropdown(btn) {
+        const menu = document.getElementById('header-user-menu');
+        if (menu) {
+          menu.classList.toggle('hidden');
+        }
+      }
+
       document.addEventListener('click', function(e) {
+        // Close category popovers
         if (!e.target.closest('.custom-category-dropdown') && !e.target.closest('.category-menu-popover')) {
           document.querySelectorAll('.category-menu-popover').forEach(p => {
             p.classList.add('hidden');
             p.closest('.custom-category-dropdown')?.classList.remove('z-50');
           });
+        }
+
+        // Close user switcher menu
+        const userMenu = document.getElementById('header-user-menu');
+        if (userMenu && !e.target.closest('#header-user-menu') && !e.target.closest('button[onclick*="toggleUserDropdown"]')) {
+          userMenu.classList.add('hidden');
         }
       });
 
@@ -434,6 +526,10 @@
         document.querySelectorAll('.category-menu-popover:not(.hidden)').forEach(p => {
           p.classList.add('hidden');
         });
+        const userMenu = document.getElementById('header-user-menu');
+        if (userMenu && !userMenu.classList.contains('hidden')) {
+          userMenu.classList.add('hidden');
+        }
       }, true);
 
       // Initialize Notyf Toast Notification Engine
@@ -491,6 +587,113 @@
         const review = document.getElementById('review');
         if (review) review.innerHTML = '';
       };
+
+      window.recalculateReceiptTotal = function() {
+        const inputs = document.querySelectorAll('#receipt-drawer-backdrop input[name="amount"]');
+        let total = 0;
+        inputs.forEach(input => {
+          const val = parseFloat(input.value);
+          if (!isNaN(val) && val > 0) {
+            total += val;
+          }
+        });
+        const totalDisplay = document.getElementById('receipt-total-amount');
+        if (totalDisplay) {
+          totalDisplay.textContent = total.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' บาท';
+        }
+      };
+
+      window.handleUniversalFilter = function(scope) {
+        const searchInput = document.getElementById(scope + '-search-input');
+        const catInput = document.getElementById(scope + '-category-filter');
+        const clearBtn = document.getElementById(scope + '-search-clear');
+        const emptyEl = document.getElementById(scope === 'tx' ? 'tx-search-empty' : 'mem-search-empty');
+        const countBadge = document.getElementById(scope === 'tx' ? 'transactions-count-badge' : 'memory-count-badge');
+
+        const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
+        const selectedCat = (catInput ? catInput.value : 'all').toLowerCase().trim();
+
+        if (clearBtn) {
+          if (q) {
+            clearBtn.classList.remove('hidden');
+          } else {
+            clearBtn.classList.add('hidden');
+          }
+        }
+
+        const rowSelector = (scope === 'tx') ? '.transaction-list-row' : '.memory-item-row';
+        const rows = document.querySelectorAll(rowSelector);
+        let matchCount = 0;
+
+        rows.forEach(row => {
+          const searchData = (row.getAttribute('data-search') || '').toLowerCase();
+          const catData = (row.getAttribute('data-category') || '').toLowerCase();
+
+          const matchesText = !q || searchData.includes(q);
+          let matchesCat = true;
+
+          if (selectedCat !== 'all') {
+            const catKeywords = selectedCat.split(',');
+            matchesCat = catKeywords.some(k => catData.includes(k.trim()));
+          }
+
+          if (matchesText && matchesCat) {
+            row.style.display = '';
+            matchCount++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+
+        if (emptyEl) {
+          if (matchCount === 0 && rows.length > 0) {
+            emptyEl.classList.remove('hidden');
+          } else {
+            emptyEl.classList.add('hidden');
+          }
+        }
+
+        if (countBadge) {
+          const labelUnit = (scope === 'tx') ? 'รายการ' : 'คำ';
+          if (q || selectedCat !== 'all') {
+            countBadge.textContent = 'พบ ' + matchCount + ' / ' + rows.length + ' ' + labelUnit;
+          } else {
+            countBadge.textContent = rows.length + ' ' + labelUnit;
+          }
+        }
+      };
+
+      window.setUniversalCategoryFilter = function(scope, catVal, btn) {
+        const catInput = document.getElementById(scope + '-category-filter');
+        if (catInput) catInput.value = catVal;
+
+        const parent = btn.closest('.filter-bar-component');
+        if (parent) {
+          parent.querySelectorAll('.category-pill-btn').forEach(b => {
+            b.classList.remove('bg-[#d53583]', 'text-white', 'font-bold', 'shadow-2xs', 'shadow-pink-500/20', 'active-cat-pill');
+            b.classList.add('bg-slate-100', 'hover:bg-slate-200/80', 'text-slate-600');
+          });
+          btn.classList.remove('bg-slate-100', 'hover:bg-slate-200/80', 'text-slate-600');
+          btn.classList.add('bg-[#d53583]', 'text-white', 'font-bold', 'shadow-2xs', 'shadow-pink-500/20', 'active-cat-pill');
+        }
+
+        window.handleUniversalFilter(scope);
+      };
+
+      window.clearUniversalFilter = function(scope) {
+        const searchInput = document.getElementById(scope + '-search-input');
+        if (searchInput) {
+          searchInput.value = '';
+          searchInput.focus();
+        }
+        window.handleUniversalFilter(scope);
+      };
+
+      document.addEventListener('input', function(e) {
+        if (e.target && e.target.name === 'amount' && e.target.closest('#receipt-drawer-backdrop')) {
+          window.recalculateReceiptTotal();
+        }
+      });
     </script>
   </body>
 

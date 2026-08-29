@@ -200,15 +200,17 @@ apiRouter.post('/confirm', async (c) => {
     }
 
     /**
-     * ส่งรายการที่ผ่านการตรวจสอบเข้าสู่ระบบ Passive Learning
+     * ส่งรายการที่ผ่านการตรวจสอบเข้าสู่ระบบ Passive Learning พร้อมป้องกันรายการซ้ำ
      */
-    await learnTransactions(user.id, validItems)
+    const result = await learnTransactions(user.id, validItems)
 
     return c.json({
         success: true,
         user: { id: user.id, name: user.name },
-        message: `Successfully confirmed and learned ${validItems.length} transactions for ${user.name}`,
-        count: validItems.length,
+        message: `Successfully confirmed ${result.insertedCount} transactions for ${user.name} (skipped ${result.skippedDuplicates} duplicates)`,
+        insertedCount: result.insertedCount,
+        skippedDuplicates: result.skippedDuplicates,
+        count: result.insertedCount,
     })
 })
 

@@ -120,21 +120,55 @@ export async function setMemoryEnabled(userId: string, enabled: boolean): Promis
 /**
  * เรียนรู้และบันทึกประวัติรายการธุรกรรมที่ได้รับการยืนยันแล้วเข้าสู่ฐานข้อมูล (Passive Learning):
  * - แปลงข้อมูลเป็น Transaction Document พร้อมคำนวณ Normalized Key
+ * - ป้องกันการบันทึกรายการซ้ำที่มีชื่อเดียวกัน (Normalized Key) และเวลาวันเดียวกัน (Date) ของผู้ใช้คนเดียวกัน
+ * - อนุญาตให้บันทึกรายการที่เวลาเดียวกันได้หากเป็นคนละชื่อ (Different Names)
  * - บันทึกลง Collection transactions ใน MongoDB เพื่อเป็นแหล่งข้อมูลหลักของ Memory
  *
  * @param userId - รหัสผู้ใช้
  * @param items - รายการธุรกรรมที่ต้องการบันทึก
+ * @returns สรุปผลการบันทึก จำนวนรายการที่บันทึก และจำนวนรายการซ้ำที่ถูกข้าม
  */
 export async function learnTransactions(
     userId: string,
     items: LearnItemInput[],
-): Promise<void> {
-    if (!items || items.length === 0) return
+): Promise<{ insertedCount: number; skippedDuplicates: number; insertedDocs: TransactionDoc[] }> {
+    if (!items || items.length === 0) {
+        return { insertedCount: 0, skippedDuplicates: 0, insertedDocs: [] }
+    }
 
     const { transactions } = getCollections()
     const now = new Date()
 
-    const docs: TransactionDoc[] = items.map((item) => ({
+    /**
+     * กรองรายการที่ซ้ำกันภายในชุดข้อมูลเดียวกัน (In-batch deduplication)
+     * ซ้ำเมื่อ: normalizedKey เดียวกัน และ date เดียวกัน
+     */
+    const uniqueInBatch: LearnItemInput[] = []
+    const seenBatchKeys = new Set<string>()
+    let skippedInBatch = 0
+
+    for (const item of items) {
+        const normKey = normalizeMemoryKey(item.description)
+        const dateStr = item.date ? new Date(item.date).toISOString() : now.toISOString()
+        const dedupeKey = `${normKey}:::${dateStr}`
+
+        if (seenBatchKeys.has(dedupeKey)) {
+            skippedInBatch++
+            continue
+        }
+
+        seenBatchKeys.add(dedupeKey)
+        uniqueInBatch.push({ ...item, date: dateStr })
+    }
+
+    if (uniqueInBatch.length === 0) {
+        return { insertedCount: 0, skippedDuplicates: skippedInBatch, insertedDocs: [] }
+    }
+
+    /**
+     * ตรวจสอบความซ้ำซ้อนกับข้อมูลที่มีอยู่แล้วในฐานข้อมูล MongoDB
+     */
+    const candidateDocs: TransactionDoc[] = uniqueInBatch.map((item) => ({
         id: item.id || createId(),
         userId,
         description: item.description.trim(),
@@ -147,7 +181,35 @@ export async function learnTransactions(
         updatedAt: now,
     }))
 
-    await transactions.insertMany(docs)
+    const conditions = candidateDocs.map((doc) => ({
+        userId,
+        normalizedKey: doc.normalizedKey,
+        date: doc.date,
+    }))
+
+    const existingDocs = await transactions
+        .find({ $or: conditions })
+        .toArray()
+
+    const existingSet = new Set(
+        existingDocs.map((doc) => `${doc.normalizedKey}:::${doc.date}`),
+    )
+
+    const docsToInsert = candidateDocs.filter(
+        (doc) => !existingSet.has(`${doc.normalizedKey}:::${doc.date}`),
+    )
+
+    const totalSkipped = skippedInBatch + (candidateDocs.length - docsToInsert.length)
+
+    if (docsToInsert.length > 0) {
+        await transactions.insertMany(docsToInsert)
+    }
+
+    return {
+        insertedCount: docsToInsert.length,
+        skippedDuplicates: totalSkipped,
+        insertedDocs: docsToInsert,
+    }
 }
 
 /**

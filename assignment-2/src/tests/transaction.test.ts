@@ -99,4 +99,21 @@ describe('parseTransactions', () => {
 
         expect(result).toEqual([])
     })
+
+    it('should parse multi-transaction inputs with individual dates', () => {
+        const result = parseTransactions(
+            '3 วันที่ 11โมง ข้าวมันไก่ 50 แล้ว 2 วันที่แล้ว 10 โมง ช้อปปิ้ง 500',
+        )
+
+        expect(result).toHaveLength(2)
+        expect(result[0].description).toBe('ข้าวมันไก่')
+        expect(result[0].amount).toBe(50)
+        expect(result[1].description).toBe('ช้อปปิ้ง')
+        expect(result[1].amount).toBe(500)
+
+        const d1 = new Date(result[0].date)
+        const d2 = new Date(result[1].date)
+        expect(d1.getHours()).toBe(11)
+        expect(d2.getHours()).toBe(10)
+    })
 })

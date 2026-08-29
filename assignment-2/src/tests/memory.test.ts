@@ -8,6 +8,7 @@ import {
     getMemoryMatch,
     updateTransactionCategory,
     inspectUserMemory,
+    getRecentTransactions,
     deleteUserMemoryKey,
     clearAllUserMemory,
 } from '../modules/memory/service'
@@ -82,12 +83,14 @@ describe('Memory Layer Service', () => {
                     amount: 50,
                     categoryId: 'food',
                     categoryTitle: 'อาหาร',
+                    date: '2026-08-28T12:00:00.000Z',
                 },
                 {
                     description: 'ข้าวมันไก่',
                     amount: 60,
                     categoryId: 'food',
                     categoryTitle: 'อาหาร',
+                    date: '2026-08-29T12:00:00.000Z',
                 },
             ])
 
@@ -238,18 +241,21 @@ describe('Memory Layer Service', () => {
                     amount: 50,
                     categoryId: 'food',
                     categoryTitle: 'อาหาร',
+                    date: '2026-08-28T12:00:00.000Z',
                 },
                 {
                     description: 'ข้าวมันไก่',
                     amount: 60,
                     categoryId: 'food',
                     categoryTitle: 'อาหาร',
+                    date: '2026-08-29T12:00:00.000Z',
                 },
                 {
                     description: 'bts หมอชิต',
                     amount: 45,
                     categoryId: 'transport',
                     categoryTitle: 'เดินทาง',
+                    date: '2026-08-29T17:00:00.000Z',
                 },
             ])
 
@@ -367,6 +373,111 @@ describe('Memory Layer Service', () => {
 
             const memories = await inspectUserMemory(testUserId)
             expect(memories).toHaveLength(0)
+        })
+    })
+
+    /**
+     * การทดสอบการป้องกันรายการซ้ำ (Deduplication Prevention)
+     */
+    describe('Deduplication Prevention', () => {
+        /**
+         * ตรวจสอบว่าระบบไม่อนุญาตให้บันทึกรายการซ้ำที่มีชื่อเดียวกันและวันเวลาเดียวกัน
+         */
+        it('should prevent recording duplicate transactions with same name and same date/time', async () => {
+            const testUserId = 'test_user_dedupe_1'
+            const sameDate = '2026-08-29T17:00:00.000Z'
+
+            const firstResult = await learnTransactions(testUserId, [
+                {
+                    description: 'ข้าวมันไก่',
+                    amount: 50,
+                    categoryId: 'food',
+                    categoryTitle: 'อาหาร',
+                    date: sameDate,
+                },
+            ])
+
+            expect(firstResult.insertedCount).toBe(1)
+            expect(firstResult.skippedDuplicates).toBe(0)
+
+            // บันทึกซ้ำด้วยชื่อเดิม และเวลาเดิม
+            const secondResult = await learnTransactions(testUserId, [
+                {
+                    description: 'ข้าวมันไก่',
+                    amount: 50,
+                    categoryId: 'food',
+                    categoryTitle: 'อาหาร',
+                    date: sameDate,
+                },
+            ])
+
+            expect(secondResult.insertedCount).toBe(0)
+            expect(secondResult.skippedDuplicates).toBe(1)
+
+            // ตรวจสอบว่าใน MongoDB มีเพียง 1 รายการ
+            const recent = await getRecentTransactions(testUserId)
+            expect(recent).toHaveLength(1)
+        })
+
+        /**
+         * ตรวจสอบว่าระบบอนุญาตให้บันทึกรายการในวันเวลาเดียวกันได้หากเป็นคนละชื่อ
+         */
+        it('should allow recording transactions with different names at the same date/time', async () => {
+            const testUserId = 'test_user_dedupe_2'
+            const sameDate = '2026-08-29T17:00:00.000Z'
+
+            const result = await learnTransactions(testUserId, [
+                {
+                    description: 'ข้าวมันไก่',
+                    amount: 50,
+                    categoryId: 'food',
+                    categoryTitle: 'อาหาร',
+                    date: sameDate,
+                },
+                {
+                    description: 'น้ำเปล่า',
+                    amount: 10,
+                    categoryId: 'food',
+                    categoryTitle: 'อาหาร',
+                    date: sameDate,
+                },
+            ])
+
+            expect(result.insertedCount).toBe(2)
+            expect(result.skippedDuplicates).toBe(0)
+
+            const recent = await getRecentTransactions(testUserId)
+            expect(recent).toHaveLength(2)
+        })
+
+        /**
+         * ตรวจสอบว่าระบบอนุญาตให้บันทึกรายการชื่อเดียวกันได้หากเป็นคนละวันเวลา
+         */
+        it('should allow recording transactions with same name on different dates/times', async () => {
+            const testUserId = 'test_user_dedupe_3'
+
+            const result = await learnTransactions(testUserId, [
+                {
+                    description: 'ข้าวมันไก่',
+                    amount: 50,
+                    categoryId: 'food',
+                    categoryTitle: 'อาหาร',
+                    date: '2026-08-28T12:00:00.000Z',
+                },
+                {
+                    description: 'ข้าวมันไก่',
+                    amount: 50,
+                    categoryId: 'food',
+                    categoryTitle: 'อาหาร',
+                    date: '2026-08-29T12:00:00.000Z',
+                },
+            ])
+
+            expect(result.insertedCount).toBe(2)
+            expect(result.skippedDuplicates).toBe(0)
+
+            const recent = await getRecentTransactions(testUserId)
+            expect(recent).toHaveLength(2)
         })
     })
 })

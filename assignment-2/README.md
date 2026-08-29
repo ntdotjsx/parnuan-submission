@@ -202,7 +202,7 @@ bun dev
 ```bash
 bun test
 ```
-*ครอบคลุม 49 เทสต์ 115 assertions ครบทั้ง Candidate, Category, Date, Transaction และ Memory Layers*
+*ครอบคลุม 57 เทสต์ 150 assertions ครบทั้ง Candidate, Category, Date, Transaction และ Memory Layers*
 
 ---
 

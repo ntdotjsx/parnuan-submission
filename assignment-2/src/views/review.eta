@@ -24,7 +24,7 @@
     <div class="fixed inset-0 -z-10 cursor-pointer" onclick="closeReceiptDrawer()"></div>
 
     <!-- Receipt Bill Card Container -->
-    <div class="bg-white w-full sm:max-w-xl rounded-t-[28px] sm:rounded-[28px] shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[85vh] border border-slate-200/90 relative animate-in slide-in-from-bottom duration-300">
+    <div class="bg-white w-full sm:max-w-xl rounded-t-[28px] sm:rounded-[28px] shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[85vh] relative animate-in slide-in-from-bottom duration-300">
 
       <!-- Top Mobile Pull Handle -->
       <div class="w-full flex items-center justify-center pt-3 pb-1 sm:hidden bg-slate-50/50">
@@ -106,22 +106,25 @@
                 </div>
               <% } %>
 
-              <!-- Input Row: Description, Amount, Category Dropdown -->
-              <div class="flex items-center gap-2 justify-between">
+              <!-- Input Row: Description, Amount, Category Dropdown (Fully Responsive) -->
+              <div class="flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
                 <!-- Description Input -->
-                <div class="flex-1 min-w-[120px]">
-                  <input type="text" required name="description" value="<%= transaction.description %>" placeholder="ชื่อรายการ..." class="w-full px-2.5 py-1.5 text-xs sm:text-sm font-semibold text-slate-800 bg-slate-50/70 hover:bg-slate-100/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-[#d53583] focus:ring-1 focus:ring-pink-500 transition-all">
+                <div class="w-full sm:flex-1">
+                  <input type="text" required name="description" value="<%= transaction.description %>" placeholder="ชื่อรายการ..." class="w-full px-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 bg-slate-50/70 hover:bg-slate-100/70 rounded-xl focus:bg-white focus:outline-none focus:border-[#d53583] focus:ring-1 focus:ring-pink-500 transition-all">
                 </div>
 
-                <!-- Amount Input -->
-                <div class="w-24 sm:w-28 relative shrink-0">
-                  <span class="absolute left-2.5 top-1.5 text-slate-400 font-semibold text-xs">฿</span>
-                  <input type="number" step="0.01" required name="amount" value="<%= transaction.amount %>" class="w-full pl-6 pr-2 py-1.5 text-xs sm:text-sm font-bold text-slate-800 bg-slate-50/70 hover:bg-slate-100/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-[#d53583] focus:ring-1 focus:ring-pink-500 text-right transition-all">
-                </div>
+                <!-- Amount & Category Row on Mobile -->
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                  <!-- Amount Input -->
+                  <div class="w-1/2 sm:w-28 relative shrink-0">
+                    <span class="absolute left-2.5 top-2 sm:top-1.5 text-slate-400 font-semibold text-xs">฿</span>
+                    <input type="number" step="0.01" required name="amount" value="<%= transaction.amount %>" oninput="recalculateReceiptTotal()" class="w-full pl-6 pr-2 py-2 sm:py-1.5 text-xs sm:text-sm font-bold text-slate-800 bg-slate-50/70 hover:bg-slate-100/70 rounded-xl focus:bg-white focus:outline-none focus:border-[#d53583] focus:ring-1 focus:ring-pink-500 text-right transition-all">
+                  </div>
 
-                <!-- Category Dropdown -->
-                <div class="w-40 sm:w-44 shrink-0">
-                  <%~ include('components/category-dropdown', { categoryTitle, categoryId: transaction.category?.id, name: 'category', autoSubmit: false }) %>
+                  <!-- Category Dropdown -->
+                  <div class="w-1/2 sm:w-44 shrink-0">
+                    <%~ include('components/category-dropdown', { categoryTitle, categoryId: transaction.category?.id, name: 'category', autoSubmit: false }) %>
+                  </div>
                 </div>
               </div>
             </div>
@@ -134,7 +137,7 @@
             <span class="text-xs sm:text-sm font-semibold text-slate-600">
               ยอดรวมทั้งสิ้น (Total Amount)
             </span>
-            <span class="text-lg sm:text-xl font-extrabold text-[#d53583]">
+            <span id="receipt-total-amount" class="text-lg sm:text-xl font-extrabold text-[#d53583]">
               <%= totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %> บาท
             </span>
           </div>

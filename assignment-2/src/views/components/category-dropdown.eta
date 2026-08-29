@@ -7,7 +7,7 @@
   <input type="hidden" name="<%= inputName %>" class="category-hidden-input" value="<%= currentTitle %>">
 
   <!-- Custom Dropdown Trigger Button -->
-  <button type="button" onclick="toggleCategoryMenu(this)" class="w-full px-2.5 py-1.5 text-xs font-semibold text-slate-800 bg-white border border-slate-200 rounded-xl hover:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-500/20 shadow-2xs transition-all flex items-center justify-between cursor-pointer group gap-1.5">
+  <button type="button" onclick="toggleCategoryMenu(this)" class="w-full px-2.5 py-1.5 text-xs font-semibold text-slate-800 bg-white rounded-xl hover:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-500/20 shadow-2xs transition-all flex items-center justify-between cursor-pointer group gap-1.5">
     <span class="selected-category-label flex items-center gap-1.5 truncate">
       <% if (currentTitle === 'อาหาร' || it.categoryId === 'food') { %>
         🍔 อาหาร (food)
@@ -26,8 +26,8 @@
     </svg>
   </button>
 
-  <!-- Custom Floating Menu Popover (Supports smart dynamic top/bottom placement) -->
-  <div class="category-menu-popover hidden absolute right-0 top-full mt-1.5 w-60 bg-white border border-slate-200 rounded-2xl shadow-xl p-2 z-50 flex flex-col gap-1 max-h-60 overflow-y-auto">
+  <!-- Custom Floating Menu Popover (Supports smart dynamic top/bottom placement & mobile bounds) -->
+  <div class="category-menu-popover hidden absolute right-0 top-full mt-1.5 w-60 max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-xl p-2 z-50 flex flex-col gap-1 max-h-60 overflow-y-auto">
     <button type="button" onclick="selectCategoryItem(this, 'อาหาร', <%= autoSubmit %>)" class="w-full text-left px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-pink-50 hover:text-[#d53583] rounded-xl transition-all flex items-center justify-between cursor-pointer">
       <span>🍔 อาหาร (food)</span>
     </button>

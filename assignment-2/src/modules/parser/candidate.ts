@@ -22,6 +22,7 @@ export function splitCandidates(text: string): string[] {
         .replace(/แล้วก็/g, "|")
         .replace(/และก็/g, "|")
         .replace(/และ/g, "|")
+        .replace(/\s+แล้ว\s+/g, "|")
         .trim()
 
     const candidates = normalized
@@ -43,7 +44,7 @@ export function splitCandidates(text: string): string[] {
                  * => "ข้าวมันไก่ 50"
                  */
                 const match = remaining.match(
-                    /^(.+?\s\d+(?:\.\d+)?)\s+(?=\S)/,
+                    /^(.+?\s\d+(?:\.\d+)?(?!\s*(?:โมง|ทุ่ม|นาที|วัน|ชม\.)))\s+(?=\S)/,
                 )
 
                 if (!match) {
