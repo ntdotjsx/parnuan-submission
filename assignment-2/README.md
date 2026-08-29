@@ -187,16 +187,13 @@ flowchart TD
 ### ขั้นตอนการรันระบบ:
 
 ```bash
-# 1. ติดตั้ง Dependencies
+# ติดตั้ง Dependencies
 bun install
 
-# 2. เริ่มต้นฐานข้อมูล MongoDB ผ่าน Docker Compose
+# เริ่มต้นฐานข้อมูล MongoDB ผ่าน Docker Compose
 docker compose up -d
 
-# 3. Seed ข้อมูลผู้ใช้เริ่มต้น (user_nut และ user_title)
-bun src/modules/db/seed.ts
-
-# 4. รันระบบ Development Server
+# รันระบบ Development Server
 bun dev
 ```
 เปิดเบราว์เซอร์ไปที่: `http://localhost:3000`
@@ -205,7 +202,7 @@ bun dev
 ```bash
 bun test
 ```
-*ครอบคลุม 47 เทสต์ 109 assertions ครบทั้ง Candidate, Category, Date, Transaction และ Memory Layers*
+*ครอบคลุม 49 เทสต์ 115 assertions ครบทั้ง Candidate, Category, Date, Transaction และ Memory Layers*
 
 ---
 
@@ -215,4 +212,4 @@ bun test
 * **การเขียน Unit Tests ครอบคลุม 3 Demo Flows:** 45 นาที
 * **การปรับปรุง UI/UX (2-Column Sidebar, HTMX OOB Swaps, Custom Categories):** 1 ชั่วโมง
 * **การจัดทำ Documentation & Technical Design:** 45 นาที
-* **รวมเวลาทั้งหมด:** ประมาณ 4 ชั่วโมง 30 นาที
+* **รวมเวลาทั้งหมด:** ประมาณ 4 ชั่วโมง 30 นาที

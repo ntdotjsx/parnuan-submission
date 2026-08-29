@@ -1,119 +1,154 @@
 <% if (!it.transactions || it.transactions.length === 0) { %>
-  <div class="bg-amber-50 border border-dashed border-amber-300 rounded-2xl p-6 text-center text-amber-800 flex flex-col items-center gap-2">
-    <h3 class="text-base font-bold">⚠️ ไม่พบรายการที่สามารถแปลงได้</h3>
-    <p class="text-xs sm:text-sm text-amber-700">
-      กรุณาระบุชื่อรายการพร้อมจำนวนเงิน เช่น <strong>"ข้าวมันไก่ 50"</strong> หรือ <strong>"เมื่อวานขึ้น bts 45 ช้อปปิ้ง 200"</strong>
-    </p>
+  <!-- Receipt Drawer Backdrop Overlay -->
+  <div id="receipt-drawer-backdrop" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity animate-in fade-in duration-200">
+    <div class="fixed inset-0 -z-10" onclick="closeReceiptDrawer()"></div>
+
+    <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 flex flex-col items-center gap-4 text-center border border-slate-200">
+      <div>
+        <h3 class="text-base font-bold text-slate-800">ป้าไม่พบรายการที่สามารถแปลงได้</h3>
+        <p class="text-xs text-slate-500 mt-1">
+          ช่วยระบุชื่อรายการพร้อมจำนวนเงินให้ป้าหน่อย เช่น <strong>"ข้าวมันไก่ 50"</strong> หรือ <strong>"เมื่อวานขึ้น bts 45 ช้อปปิ้ง 200"</strong>
+        </p>
+      </div>
+      <button type="button" onclick="closeReceiptDrawer()" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition-all cursor-pointer">
+        ปิดหน้าต่าง
+      </button>
+    </div>
   </div>
 <% } else { %>
   <% const totalAmount = it.transactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0); %>
-  <form hx-post="/ui/confirm" hx-target="#review" hx-swap="innerHTML" class="flex flex-col gap-4">
-    <input type="hidden" name="userId" value="<%= it.currentUser.id %>">
 
-    <div class="bg-white rounded-2xl p-5 sm:p-6 border border-pink-200 shadow-md flex flex-col gap-5">
-      <!-- Section Header -->
-      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-        <div class="flex items-center gap-2">
-          <h2 class="text-lg font-bold text-slate-800">📝 ตรวจสอบรายการก่อนบันทึก (Review Transactions)</h2>
+  <!-- Receipt Drawer Backdrop Overlay -->
+  <div id="receipt-drawer-backdrop" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-300">
+    <!-- Click backdrop to close -->
+    <div class="fixed inset-0 -z-10 cursor-pointer" onclick="closeReceiptDrawer()"></div>
+
+    <!-- Receipt Bill Card Container -->
+    <div class="bg-white w-full sm:max-w-xl rounded-t-[28px] sm:rounded-[28px] shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[85vh] border border-slate-200/90 relative animate-in slide-in-from-bottom duration-300">
+
+      <!-- Top Mobile Pull Handle -->
+      <div class="w-full flex items-center justify-center pt-3 pb-1 sm:hidden bg-slate-50/50">
+        <div class="w-12 h-1.5 bg-slate-300 rounded-full"></div>
+      </div>
+
+      <!-- Receipt Header -->
+      <div class="px-5 sm:px-6 pt-4 pb-3 flex flex-col gap-2.5 relative bg-gradient-to-b from-pink-50/40 via-white to-white border-b border-slate-100">
+        <!-- Close Button -->
+        <button type="button" onclick="closeReceiptDrawer()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 flex items-center justify-center text-sm font-bold transition-all cursor-pointer">
+          ✕
+        </button>
+
+        <div class="flex items-center gap-3">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+              ใบตรวจสอบรายการบันทึก (Receipt Bill)
+            </h2>
+            <p class="text-xs text-slate-500">
+              ตรวจสอบและแก้ไขข้อมูลก่อนบันทึกลงระบบ
+            </p>
+          </div>
         </div>
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-slate-500 font-medium">บันทึกให้: <strong><%= it.currentUser.name %></strong></span>
-          <span class="bg-pink-100 text-[#d53583] text-xs font-bold px-3 py-1 rounded-full border border-pink-200">
+
+        <!-- Receipt Meta Info Subheader -->
+        <div class="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-dashed border-slate-200">
+          <div class="flex items-center gap-1.5">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>บันทึกให้: <strong class="text-slate-700 font-semibold"><%= it.currentUser.name %></strong></span>
+          </div>
+          <span class="bg-pink-100 text-[#d53583] font-bold px-2.5 py-0.5 rounded-full text-[11px] border border-pink-200">
             <%= it.transactions.length %> รายการ
           </span>
         </div>
       </div>
 
-      <!-- Transactions Unified List Container -->
-      <div class="border border-slate-200 rounded-xl divide-y divide-slate-200 bg-white shadow-xs overflow-visible">
-        <% it.transactions.forEach((transaction, index) => { %>
-          <%
-                const d = new Date(transaction.date);
-                const formattedDate = !isNaN(d.getTime())
-                  ? `${d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.`
-                  : 'วันนี้';
-                const isHighConfidence = (transaction.confidence || 0) >= 0.8;
-                const isFromMemory = transaction.source === 'memory';
-                const categoryTitle = transaction.category?.title || 'อาหาร';
-              %>
-          <div class="p-4 bg-slate-50/40 hover:bg-white transition-colors flex flex-col gap-3 relative first:rounded-t-xl last:rounded-b-xl">
-            <input type="hidden" name="id" value="<%= transaction.id %>">
-            <input type="hidden" name="date" value="<%= transaction.date %>">
+      <!-- Dashed Cut Line (Receipt Aesthetic) -->
+      <div class="w-full border-b-2 border-dashed border-slate-200"></div>
 
-            <!-- Item Meta Header -->
-            <div class="flex flex-wrap items-center justify-between gap-2 text-xs border-b border-slate-200/60 pb-2">
-              <div class="flex items-center gap-2">
-                <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center">
-                  #<%= index + 1 %>
-                </span>
-                <span class="text-slate-500 font-medium">
-                  📅 <%= formattedDate %>
-                </span>
-              </div>
+      <!-- Receipt Form Body (Scrollable items) -->
+      <form hx-post="/ui/confirm" hx-target="#receipt-drawer-backdrop" hx-swap="outerHTML" class="flex flex-col flex-1 overflow-hidden">
+        <input type="hidden" name="userId" value="<%= it.currentUser.id %>">
 
-              <div class="flex items-center gap-2">
-                <% if (transaction.warning && transaction.warning.length > 0) { %>
-                  <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md border border-amber-200 font-medium">
-                    ⚠️ <%= transaction.warning[0] %>
+        <!-- Scrollable Receipt Item List (Pure Flat Minimal List) -->
+        <div class="px-5 sm:px-6 py-2 overflow-y-auto flex flex-col flex-1 divide-y divide-dashed divide-slate-200 bg-white" style="scrollbar-width: thin;">
+          <% it.transactions.forEach((transaction, index) => { %>
+            <%
+              const d = new Date(transaction.date);
+              const formattedDate = !isNaN(d.getTime())
+                ? `${d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.`
+                : 'วันนี้';
+              const isHighConfidence = (transaction.confidence || 0) >= 0.8;
+              const categoryTitle = transaction.category?.title || 'อาหาร';
+            %>
+            <div class="py-3 flex flex-col gap-2">
+              <input type="hidden" name="id" value="<%= transaction.id %>">
+              <input type="hidden" name="date" value="<%= transaction.date %>">
+
+              <!-- Meta Line: Index, Date, Confidence Badge -->
+              <div class="flex items-center justify-between text-xs gap-2">
+                <div class="flex items-center gap-1.5 font-mono">
+                  <span class="font-bold text-slate-700 text-xs">#<%= index + 1 %></span>
+                  <span class="text-slate-300">•</span>
+                  <span class="text-slate-500 text-[11px] font-sans font-medium"><%= formattedDate %></span>
+                </div>
+
+                <div>
+                  <span class="text-[10px] <%= isHighConfidence ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200' %> px-1.5 py-0.5 rounded border font-mono font-medium">
+                    ความมั่นใจ <%= Math.round((transaction.confidence || 1) * 100) %>%
                   </span>
-                <% } %>
-
-                <span class="<%= isHighConfidence ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200' %> px-2 py-0.5 rounded-md border font-medium">
-                  ความมั่นใจ <%= Math.round((transaction.confidence || 1) * 100) %>%
-                </span>
-              </div>
-            </div>
-
-            <!-- Item Input Controls -->
-            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-              <!-- Description Input -->
-              <div class="sm:col-span-5 flex flex-col gap-1">
-                <label class="text-xs font-semibold text-slate-600">
-                  รายการ (Description)
-                </label>
-                <input type="text" required name="description" value="<%= transaction.description %>" class="w-full px-3 py-2 text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-[#d53583] focus:ring-2 focus:ring-pink-500/20 transition-all">
-              </div>
-
-              <!-- Amount Input -->
-              <div class="sm:col-span-3 flex flex-col gap-1">
-                <label class="text-xs font-semibold text-slate-600">
-                  จำนวนเงิน (Amount)
-                </label>
-                <div class="relative">
-                  <span class="absolute left-3 top-2 text-slate-400 font-bold text-sm">บาท</span>
-                  <input type="number" step="0.01" required name="amount" value="<%= transaction.amount %>" class="w-full pl-10 pr-3 py-2 text-sm font-bold text-slate-800 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-[#d53583] focus:ring-2 focus:ring-pink-500/20 text-right transition-all">
                 </div>
               </div>
 
-              <!-- Custom Styled Category Dropdown Component -->
-              <div class="sm:col-span-4 flex flex-col gap-1">
-                <label class="text-xs font-semibold text-slate-600">
-                  หมวดหมู่ (Category)
-                </label>
-                <%~ include('components/category-dropdown', { categoryTitle, categoryId: transaction.category?.id, name: 'category', autoSubmit: false }) %>
+              <!-- Full Warning Note Banner (If warning exists) -->
+              <% if (transaction.warning && transaction.warning.length > 0) { %>
+                <div class="flex items-start gap-1.5 text-[11px] bg-amber-50 text-amber-900 border border-amber-200/90 rounded-lg px-2.5 py-1.5 leading-snug">
+                  <span class="shrink-0 mt-0.5">⚠️</span>
+                  <span><%= transaction.warning[0] %></span>
+                </div>
+              <% } %>
+
+              <!-- Input Row: Description, Amount, Category Dropdown -->
+              <div class="flex items-center gap-2 justify-between">
+                <!-- Description Input -->
+                <div class="flex-1 min-w-[120px]">
+                  <input type="text" required name="description" value="<%= transaction.description %>" placeholder="ชื่อรายการ..." class="w-full px-2.5 py-1.5 text-xs sm:text-sm font-semibold text-slate-800 bg-slate-50/70 hover:bg-slate-100/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-[#d53583] focus:ring-1 focus:ring-pink-500 transition-all">
+                </div>
+
+                <!-- Amount Input -->
+                <div class="w-24 sm:w-28 relative shrink-0">
+                  <span class="absolute left-2.5 top-1.5 text-slate-400 font-semibold text-xs">฿</span>
+                  <input type="number" step="0.01" required name="amount" value="<%= transaction.amount %>" class="w-full pl-6 pr-2 py-1.5 text-xs sm:text-sm font-bold text-slate-800 bg-slate-50/70 hover:bg-slate-100/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-[#d53583] focus:ring-1 focus:ring-pink-500 text-right transition-all">
+                </div>
+
+                <!-- Category Dropdown -->
+                <div class="w-40 sm:w-44 shrink-0">
+                  <%~ include('components/category-dropdown', { categoryTitle, categoryId: transaction.category?.id, name: 'category', autoSubmit: false }) %>
+                </div>
               </div>
             </div>
-          </div>
-        <% }) %>
-      </div>
-
-      <!-- Total Summary Card -->
-      <div class="bg-pink-50/80 border border-pink-200 rounded-xl p-4 flex items-center justify-between">
-        <span class="text-slate-600 text-sm font-medium flex items-center gap-1.5">
-          <span>🧾</span> สรุปทั้งหมด <%= it.transactions.length %> รายการ
-        </span>
-        <div class="text-right">
-          <span class="text-xs text-slate-500 block">ยอดรวมทั้งสิ้น</span>
-          <span class="text-xl font-bold text-[#d53583]">
-            <%= totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %> บาท
-          </span>
+          <% }) %>
         </div>
-      </div>
 
-      <!-- Submit / Confirm Button -->
-      <button type="submit" class="w-full py-3 px-6 bg-gradient-to-r from-[#d53583] to-[#b51f68] hover:from-[#c22874] hover:to-[#9c1356] active:scale-[0.99] text-white font-bold text-base rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-md">
-        <span>✅ ยืนยันบันทึกลงฐานข้อมูลและเรียนรู้ (Confirm & Learn)</span>
-      </button>
+        <!-- Receipt Footer / Summary & Actions -->
+        <div class="p-4 sm:p-5 bg-white border-t-2 border-dashed border-slate-200 flex flex-col gap-3.5">
+          <div class="flex items-center justify-between bg-pink-50/70 border border-pink-100 rounded-2xl px-4 py-3">
+            <span class="text-xs sm:text-sm font-semibold text-slate-600">
+              ยอดรวมทั้งสิ้น (Total Amount)
+            </span>
+            <span class="text-lg sm:text-xl font-extrabold text-[#d53583]">
+              <%= totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %> บาท
+            </span>
+          </div>
+
+          <div class="flex items-center gap-2.5">
+            <button type="button" onclick="closeReceiptDrawer()" class="w-1/3 py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-semibold rounded-xl transition-all cursor-pointer text-center">
+              ยกเลิก
+            </button>
+            <button type="submit" class="w-2/3 py-2.5 px-4 bg-gradient-to-r from-[#d53583] to-[#b51f68] hover:from-[#c22874] hover:to-[#9c1356] text-white text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-pink-500/25 text-center flex items-center justify-center gap-1.5">
+              <span>ยืนยันบันทึกรายการ</span>
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
-  </form>
+  </div>
 <% } %>

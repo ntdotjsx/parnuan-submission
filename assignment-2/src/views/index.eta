@@ -7,11 +7,72 @@
     <title><%= it.title %></title>
     <script src="https://unpkg.com/htmx.org@2.0.10"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://use.typekit.net/pqh4fhl.css">
     <link rel="stylesheet" href="/main.css">
+    <style>
+      .notyf__toast {
+        background: #ffffff !important;
+        color: #1e293b !important;
+        border-radius: 9999px !important;
+        font-family: 'Prompt', sans-serif !important;
+        font-size: 12.5px !important;
+        font-weight: 500 !important;
+        box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(244, 114, 182, 0.2) !important;
+        border: 1px solid #fce7f3 !important;
+        padding: 9px 16px !important;
+        min-height: unset !important;
+        max-width: fit-content !important;
+        display: inline-flex !important;
+        align-items: center !important;
+      }
+
+      .notyf__wrapper {
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+      }
+
+      .notyf__message {
+        color: #334155 !important;
+        font-weight: 500 !important;
+        line-height: 1.4 !important;
+        padding: 0 !important;
+      }
+
+      .notyf__icon {
+        width: 18px !important;
+        height: 18px !important;
+        min-width: 18px !important;
+        border-radius: 9999px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-right: 8px !important;
+      }
+
+      .notyf__toast--success .notyf__icon {
+        background: #fdf2f8 !important;
+        color: #d53583 !important;
+      }
+
+      .notyf__toast--error .notyf__icon {
+        background: #fff1f2 !important;
+        color: #e11d48 !important;
+      }
+
+      .notyf__dismiss-btn {
+        display: none !important;
+      }
+
+      .notyf__ripple {
+        display: none !important;
+      }
+    </style>
   </head>
 
   <body class="bg-[#f8fafc] text-slate-800 min-h-screen py-6 px-4 sm:px-6">
@@ -111,14 +172,7 @@
               </div>
               <div class="flex items-center gap-2">
                 <% if (it.memories.length > 0) { %>
-                  <button
-                    hx-post="/ui/memory/clear"
-                    hx-vals='{"userId": "<%= it.currentUser.id %>"}'
-                    hx-target="#memory-insights-card"
-                    hx-swap="outerHTML"
-                    hx-confirm="ต้องการล้างความจำทั้งหมดของ <%= it.currentUser.name %> ใช่หรือไม่?"
-                    class="text-[11px] text-red-500 hover:text-red-700 hover:underline font-medium cursor-pointer"
-                  >
+                  <button hx-post="/ui/memory/clear" hx-vals='{"userId": "<%= it.currentUser.id %>"}' hx-target="#memory-insights-card" hx-swap="outerHTML" hx-confirm="ต้องการล้างความจำทั้งหมดของ <%= it.currentUser.name %> ใช่หรือไม่?" class="text-[11px] text-red-500 hover:text-red-700 hover:underline font-medium cursor-pointer">
                     ล้างทั้งหมด
                   </button>
                 <% } %>
@@ -146,15 +200,7 @@
                         <span class="text-[11px] bg-pink-50 text-[#d53583] border border-pink-200 px-2 py-0.5 rounded font-semibold">
                           <%= mem.preferredCategoryTitle %>
                         </span>
-                        <button
-                          hx-post="/ui/memory/delete"
-                          hx-vals='{"userId": "<%= it.currentUser.id %>", "keyword": "<%= mem.keyword %>"}'
-                          hx-target="#memory-insights-card"
-                          hx-swap="outerHTML"
-                          hx-confirm="ต้องการลบความจำ '<%= mem.keyword %>' ใช่หรือไม่?"
-                          class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-lg transition-all cursor-pointer"
-                          title="ลบความจำคำนี้"
-                        >
+                        <button hx-post="/ui/memory/delete" hx-vals='{"userId": "<%= it.currentUser.id %>", "keyword": "<%= mem.keyword %>"}' hx-target="#memory-insights-card" hx-swap="outerHTML" hx-confirm="ต้องการลบความจำ '<%= mem.keyword %>' ใช่หรือไม่?" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-lg transition-all cursor-pointer" title="ลบความจำคำนี้">
                           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
@@ -217,9 +263,6 @@
             </form>
           </div>
 
-          <!-- Review Section (Rendered via HTMX) -->
-          <section id="review" class="w-full transition-all duration-300"></section>
-
           <!-- Transaction History & Memory Edit Sync Section (Demo Flow 2) -->
           <section class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs flex flex-col gap-4">
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
@@ -257,13 +300,12 @@
                       </span>
 
                       <!-- Interactive Category Edit Form for Flow 2 Demo with Custom Dropdown Component -->
-                      <form hx-post="/ui/transactions/edit" hx-target="#tx-status-<%= tx.id %>" hx-swap="innerHTML" class="flex items-center gap-2">
+                      <form hx-post="/ui/transactions/edit" hx-swap="none" class="flex items-center gap-2">
                         <input type="hidden" name="userId" value="<%= it.currentUser.id %>">
                         <input type="hidden" name="transactionId" value="<%= tx.id %>">
                         <div class="w-48">
                           <%~ include('components/category-dropdown', { categoryTitle: tx.categoryTitle, categoryId: tx.categoryId, name: 'categoryId', autoSubmit: true }) %>
                         </div>
-                        <div id="tx-status-<%= tx.id %>"></div>
                       </form>
                     </div>
                   </div>
@@ -271,11 +313,17 @@
               </div>
             <% } %>
           </section>
+
+          <!-- Review Section (Rendered via HTMX) -->
+          <section id="review" class="w-full transition-all duration-300"></section>
         </main>
       </div>
     </div>
 
-    <!-- Global Client Script for Custom Category Dropdown Component -->
+    <!-- Floating Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 pointer-events-none max-w-sm w-full"></div>
+
+    <!-- Global Client Script for Custom Category Dropdown & Toast System -->
     <script>
       function toggleCategoryMenu(btn) {
         const container = btn.closest('.custom-category-dropdown');
@@ -284,10 +332,35 @@
 
         document.querySelectorAll('.category-menu-popover').forEach(p => {
           p.classList.add('hidden');
-          p.closest('.custom-category-dropdown')?.classList.remove('z-50');
+          p.style.position = '';
+          p.style.top = '';
+          p.style.bottom = '';
+          p.style.left = '';
+          p.style.right = '';
+          p.style.width = '';
         });
 
         if (isOpening) {
+          const rect = btn.getBoundingClientRect();
+          const spaceBelow = window.innerHeight - rect.bottom;
+          const popoverHeight = 240;
+
+          popover.style.position = 'fixed';
+          popover.style.zIndex = '99999';
+          popover.style.width = Math.max(rect.width, 240) + 'px';
+
+          const rightSpace = window.innerWidth - rect.right;
+          popover.style.right = Math.max(12, rightSpace) + 'px';
+          popover.style.left = 'auto';
+
+          if (spaceBelow < popoverHeight && rect.top > popoverHeight) {
+            popover.style.top = 'auto';
+            popover.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+          } else {
+            popover.style.bottom = 'auto';
+            popover.style.top = (rect.bottom + 6) + 'px';
+          }
+
           popover.classList.remove('hidden');
           container.classList.add('z-50');
         }
@@ -349,13 +422,75 @@
       }
 
       document.addEventListener('click', function(e) {
-        if (!e.target.closest('.custom-category-dropdown')) {
+        if (!e.target.closest('.custom-category-dropdown') && !e.target.closest('.category-menu-popover')) {
           document.querySelectorAll('.category-menu-popover').forEach(p => {
             p.classList.add('hidden');
             p.closest('.custom-category-dropdown')?.classList.remove('z-50');
           });
         }
       });
+
+      document.addEventListener('scroll', function(e) {
+        document.querySelectorAll('.category-menu-popover:not(.hidden)').forEach(p => {
+          p.classList.add('hidden');
+        });
+      }, true);
+
+      // Initialize Notyf Toast Notification Engine
+      let notyf;
+      if (typeof Notyf !== 'undefined') {
+        notyf = new Notyf({
+          duration: 3200,
+          position: {
+            x: 'right',
+            y: 'bottom'
+          },
+          dismissible: false,
+          types: [{
+              type: 'success',
+              background: '#ffffff',
+              icon: {
+                className: 'notyf__icon--success',
+                tagName: 'i',
+                color: '#d53583'
+              }
+            },
+            {
+              type: 'error',
+              background: '#ffffff',
+              icon: {
+                className: 'notyf__icon--error',
+                tagName: 'i',
+                color: '#e11d48'
+              }
+            }
+          ]
+        });
+      }
+
+      window.showToast = function(msg, type = 'success') {
+        if (notyf) {
+          if (type === 'error') {
+            notyf.error(msg);
+          } else {
+            notyf.success(msg);
+          }
+        }
+      };
+
+      window.toast = {
+        success: function(msg) {
+          window.showToast(msg, 'success');
+        },
+        error: function(msg) {
+          window.showToast(msg, 'error');
+        }
+      };
+
+      window.closeReceiptDrawer = function() {
+        const review = document.getElementById('review');
+        if (review) review.innerHTML = '';
+      };
     </script>
   </body>
 
