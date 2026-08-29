@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="th">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= it.title %></title>
+    <script src="https://unpkg.com/htmx.org@2.0.10"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.typekit.net/pqh4fhl.css">
+    <link rel="stylesheet" href="/main.css">
+  </head>
+
+  <body class="bg-slate-50 text-slate-800 min-h-screen py-8 px-4 sm:px-6">
+    <div class="flex flex-col gap-6 mx-auto max-w-5xl">
+      <!-- Header Section -->
+      <header class="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="tk-malila text-3xl sm:text-4xl font-bold text-[#d53583] tracking-tight">
+              <%= it.title %>
+            </h1>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1 font-light">
+            ระบบแปลงข้อความเป็นรายการรายจ่ายอัจฉริยะ (Text → Transaction Flow)
+          </p>
+        </div>
+      </header>
+
+      <!-- Review Section (Rendered via HTMX) -->
+      <section id="review" class="w-full transition-all duration-300"></section>
+
+      <!-- Input Form Card with clear borders -->
+      <div class="bg-white rounded-2xl p-5 sm:p-6 border-2 border-slate-200 shadow-sm">
+        <form hx-post="/ui/parse" hx-target="#review" hx-swap="innerHTML" class="flex flex-col gap-4">
+          <!-- Textarea Container -->
+          <div class="flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <label for="expense-input" class="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                <span>✏️</span> จดมาเลยหลาน รัก
+              </label>
+              <span class="text-xs text-slate-400">รองรับหลายรายการ & วันที่</span>
+            </div>
+
+            <textarea
+              id="expense-input"
+              required
+              name="text"
+              rows="3"
+              class="w-full p-3.5 text-base text-slate-800 bg-slate-50 border-2 border-slate-300 rounded-xl focus:bg-white focus:border-[#d53583] focus:ring-4 focus:ring-pink-500/15 transition-all outline-none resize-y placeholder:text-slate-400"
+              placeholder="พิมพ์ข้อความ เช่น 'ข้าวมันไก่ 50 น้ำเปล่า 7' หรือ 'เมื่อวานตอน 5 โมงครึ่ง bts 45'"></textarea>
+          </div>
+
+          <!-- Quick Example Chips -->
+          <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
+            <span class="text-xs text-slate-400 font-medium">ตัวอย่าง:</span>
+            <button type="button" onclick="document.getElementById('expense-input').value = 'ข้าวมันไก่ 50'; document.getElementById('expense-input').focus();" class="text-xs bg-slate-100 hover:bg-pink-50 hover:text-[#d53583] hover:border-pink-200 border border-slate-200 text-slate-600 px-2.5 py-1 rounded-lg transition-all cursor-pointer">
+              ข้าวมันไก่ 50
+            </button>
+            <button type="button" onclick="document.getElementById('expense-input').value = 'ข้าวมันไก่ 50 น้ำเปล่า 7 แล้วก็ช้อปปิ้ง 500'; document.getElementById('expense-input').focus();" class="text-xs bg-slate-100 hover:bg-pink-50 hover:text-[#d53583] hover:border-pink-200 border border-slate-200 text-slate-600 px-2.5 py-1 rounded-lg transition-all cursor-pointer">
+              หลายรายการ
+            </button>
+            <button type="button" onclick="document.getElementById('expense-input').value = 'เมื่อวานตอน 5 โมงครึ่ง ข้าวมันไก่ 50'; document.getElementById('expense-input').focus();" class="text-xs bg-slate-100 hover:bg-pink-50 hover:text-[#d53583] hover:border-pink-200 border border-slate-200 text-slate-600 px-2.5 py-1 rounded-lg transition-all cursor-pointer">
+              เมื่อวานตอน 5 โมงครึ่ง
+            </button>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="flex flex-row items-center justify-end pt-3">
+            <button class="flex items-center justify-center bg-gradient-to-t from-[#b51f68] via-[#d53583] to-[#f05aa0] text-white font-semibold py-2.5 px-7 rounded-xl min-w-[140px] relative cursor-pointer shadow-lg shadow-[#d53583]/30 hover:brightness-105 active:scale-95 transition-all duration-200 text-base" type="submit">
+              <img src="https://parnuan.com/_next/image?url=%2Fimages%2Fmascot%2Fparnuan-hang.png&w=96&q=75" class="absolute -top-9 left-2 w-16 h-10 pointer-events-none" alt="Parnuan Mascot" />
+              <span>จดเลย!</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </body>
+
+</html>

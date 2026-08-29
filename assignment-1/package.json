@@ -5,6 +5,8 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@hono/node-server": "^2.1.0",
+    "eta": "^4.6.0",
     "hono": "^4.13.2"
   },
   "devDependencies": {

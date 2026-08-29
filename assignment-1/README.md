@@ -4,7 +4,6 @@
 - Bun
 - TypeScript
 - Hono          → Web server / API
-- HTMX          → UI interaction
-- HTML + CSS    → Review UI
+- Eta           → UI interaction
 - Zod           → Validation
 - Vitest        → Tests
