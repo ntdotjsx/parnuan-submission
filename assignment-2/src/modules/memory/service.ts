@@ -2,8 +2,14 @@ import { getCollections } from '../db'
 import type { TransactionDoc, UserDoc } from '../db/models'
 import { createId } from '../utils'
 
+/**
+ * รหัสผู้ใช้งานหลักเริ่มต้น กรณีที่ไคลเอนต์ไม่ได้ระบุ User ID เข้ามา
+ */
 export const DEFAULT_USER_ID = 'user_nut'
 
+/**
+ * โครงสร้างข้อมูลผลลัพธ์การจับคู่หมวดหมู่จาก Memory Layer
+ */
 export interface MemoryMatchResult {
     categoryId: string
     categoryTitle: string
@@ -13,6 +19,9 @@ export interface MemoryMatchResult {
     source: 'memory'
 }
 
+/**
+ * โครงสร้างข้อมูลสำหรับแสดงผลการวิเคราะห์ความจำของผู้ใช้
+ */
 export interface MemoryInsightItem {
     keyword: string
     preferredCategoryId: string
@@ -22,6 +31,9 @@ export interface MemoryInsightItem {
     confidence: number
 }
 
+/**
+ * โครงสร้างข้อมูล Input สำหรับการเรียนรู้รายการธุรกรรมใหม่
+ */
 export interface LearnItemInput {
     id?: string
     description: string
@@ -32,10 +44,13 @@ export interface LearnItemInput {
 }
 
 /**
- * ฟังก์ชัน Normalize ข้อความสำหรับใช้เป็น Key ของ Memory
- * - ตัดเว้นวรรคหัวท้าย
- * - แปลงเป็นตัวพิมพ์เล็ก (กรณีภาษาอังกฤษ)
- * - ยุบเว้นวรรคที่ซ้ำซ้อน
+ * ฟังก์ชันปรับแต่งข้อความดิบให้เป็นรูปแบบมาตรฐาน (Normalization) สำหรับใช้เป็น Key:
+ * - ตัดช่องว่างส่วนเกินที่หัวและท้ายข้อความ
+ * - แปลงตัวอักษรภาษาอังกฤษทั้งหมดเป็นตัวพิมพ์เล็ก
+ * - ยุบช่องว่างที่ซ้ำซ้อนภายในข้อความให้เหลือเพียงช่องว่างเดี่ยว
+ *
+ * @param text - ข้อความคำอธิบายรายการ
+ * @returns ข้อความในรูปแบบ Normalized Key
  */
 export function normalizeMemoryKey(text: string): string {
     if (!text || typeof text !== 'string') return ''
@@ -43,7 +58,9 @@ export function normalizeMemoryKey(text: string): string {
 }
 
 /**
- * ดึงรายชื่อผู้ใช้ทั้งหมดในระบบ
+ * ดึงรายชื่อผู้ใช้งานทั้งหมดที่มีในฐานข้อมูล
+ *
+ * @returns รายการ User Documents ทั้งหมด
  */
 export async function getAllUsers(): Promise<UserDoc[]> {
     const { users } = getCollections()
@@ -51,9 +68,12 @@ export async function getAllUsers(): Promise<UserDoc[]> {
 }
 
 /**
- * ตรวจสอบและ Resolve User:
- * - ถ้าส่ง userId มา: ตรวจว่ามีอยู่ใน DB หรือไม่ (ถ้าไม่เจอ คืนค่า null)
- * - ถ้าไม่ส่งมา: คืนค่า User หลัก (DEFAULT_USER_ID)
+ * ตรวจสอบและค้นหาผู้ใช้ในฐานข้อมูล:
+ * - หากมีการระบุ User ID เข้ามา จะทำการค้นหาใน Collection users ว่ามีอยู่จริงหรือไม่
+ * - หากไม่ระบุ User ID จะใช้รหัสผู้ใช้หลักเริ่มต้น (DEFAULT_USER_ID)
+ *
+ * @param userIdInput - รหัสผู้ใช้ที่ส่งเข้ามาจาก Request
+ * @returns User Document หากพบ หรือ null หากไม่พบข้อมูลในระบบ
  */
 export async function resolveUser(userIdInput?: string): Promise<UserDoc | null> {
     const { users } = getCollections()
@@ -62,7 +82,11 @@ export async function resolveUser(userIdInput?: string): Promise<UserDoc | null>
 }
 
 /**
- * ตรวจสอบว่าผู้ใช้เปิดใช้งาน Memory หรือไม่ (ค่าเริ่มต้นคือ true)
+ * ตรวจสอบสถานะการเปิดหรือปิดใช้งาน Memory ของผู้ใช้
+ * โดยค่าเริ่มต้นของระบบจะถือว่าเปิดใช้งานอยู่เสมอ (true) หากยังไม่มีการตั้งค่าบันทึกไว้
+ *
+ * @param userId - รหัสผู้ใช้
+ * @returns สถานะการเปิดใช้งาน (true คือเปิด, false คือปิด)
  */
 export async function isMemoryEnabled(userId: string): Promise<boolean> {
     const { userSettings } = getCollections()
@@ -71,7 +95,11 @@ export async function isMemoryEnabled(userId: string): Promise<boolean> {
 }
 
 /**
- * สลับการตั้งค่า เปิด/ปิด Memory
+ * บันทึกการเปลี่ยนแปลงสถานะ เปิด หรือ ปิด ใช้งาน Memory ของผู้ใช้ลงฐานข้อมูล
+ *
+ * @param userId - รหัสผู้ใช้
+ * @param enabled - สถานะใหม่ที่ต้องการตั้งค่า
+ * @returns สถานะที่ถูกบันทึกสำเร็จ
  */
 export async function setMemoryEnabled(userId: string, enabled: boolean): Promise<boolean> {
     const { userSettings } = getCollections()
@@ -90,10 +118,12 @@ export async function setMemoryEnabled(userId: string, enabled: boolean): Promis
 }
 
 /**
- * ฟังก์ชันเรียนรู้รายการที่ยืนยันแล้ว (Passive Learning - Demo Flow 1)
- * - รับรายการที่ User กดยืนยัน
- * - แปลงเป็น Transaction Document
- * - บันทึกลง Collection transactions ใน MongoDB
+ * เรียนรู้และบันทึกประวัติรายการธุรกรรมที่ได้รับการยืนยันแล้วเข้าสู่ฐานข้อมูล (Passive Learning):
+ * - แปลงข้อมูลเป็น Transaction Document พร้อมคำนวณ Normalized Key
+ * - บันทึกลง Collection transactions ใน MongoDB เพื่อเป็นแหล่งข้อมูลหลักของ Memory
+ *
+ * @param userId - รหัสผู้ใช้
+ * @param items - รายการธุรกรรมที่ต้องการบันทึก
  */
 export async function learnTransactions(
     userId: string,
@@ -121,10 +151,15 @@ export async function learnTransactions(
 }
 
 /**
- * ฟังก์ชันค้นหาหมวดหมู่จาก Memory ผ่าน MongoDB Aggregation
+ * ค้นหาหมวดหมู่ที่เหมาะสมที่สุดจากประวัติความจำของผู้ใช้ โดยอาศัย MongoDB Aggregation Pipeline:
+ * - กรองเฉพาะประวัติที่เป็นของ User ID และมี Normalized Key ตรงกัน
+ * - จัดกลุ่มตามหมวดหมู่ เพื่อนับความถี่และค้นหาเวลาการใช้งานล่าสุด
+ * - จัดเรียงลำดับโดยให้ความสำคัญกับความถี่สูงสุด และความสดใหม่ของข้อมูล
+ * - คำนวณคะแนนความมั่นใจ (Confidence Score) ตามความถี่การใช้งาน
+ *
  * @param userId - รหัสผู้ใช้
- * @param description - ข้อความที่ผู้ใช้พิมพ์เข้ามา
- * @returns ผลลัพธ์หมวดหมู่ที่จำได้ หรือ null ถ้าไม่พบประวัติ หรือ ปิดความจำ
+ * @param description - ข้อความคำอธิบายรายการที่ต้องการค้นหา
+ * @returns ข้อมูลการจับคู่หมวดหมู่ หรือ null หากไม่พบประวัติหรือปิดใช้งานความจำ
  */
 export async function getMemoryMatch(
     userId: string,
@@ -167,8 +202,11 @@ export async function getMemoryMatch(
 
     const bestMatch = results[0]
 
-    // คำนวณคะแนนความมั่นใจ (Confidence Score)
-    // 1 ครั้ง = 0.85, ตั้งแต่ 2 ครั้งขึ้นไป = 0.95
+    /**
+     * กำหนดระดับความมั่นใจ:
+     * มีประวัติซ้ำตั้งแต่สองครั้งขึ้นไป ได้รับค่า 0.95
+     * มีประวัติเพียงครั้งเดียว ได้รับค่า 0.85
+     */
     const confidence = bestMatch.frequency >= 2 ? 0.95 : 0.85
 
     return {
@@ -182,7 +220,15 @@ export async function getMemoryMatch(
 }
 
 /**
- * แก้ไขหมวดหมู่ของรายการในอดีต (Edit History -> Sync Memory - Demo Flow 2)
+ * แก้ไขหมวดหมู่ของรายการธุรกรรมที่มีอยู่เดิมในอดีต (Memory Synchronization):
+ * - อัปเดต Category ID และชื่อหมวดหมู่ใหม่
+ * - ปรับปรุงค่าเวลา updatedAt ให้เป็นปัจจุบัน เพื่อให้การจับคู่ความจำสะท้อนการแก้ไขล่าสุด
+ *
+ * @param userId - รหัสผู้ใช้
+ * @param transactionId - รหัสรายการธุรกรรมที่ต้องการแก้ไข
+ * @param newCategoryId - รหัสหมวดหมู่ใหม่
+ * @param newCategoryTitle - ชื่อหมวดหมู่ใหม่ภาษาไทย
+ * @returns true หากการแก้ไขสำเร็จ หรือ false หากไม่พบรายการ
  */
 export async function updateTransactionCategory(
     userId: string,
@@ -205,7 +251,12 @@ export async function updateTransactionCategory(
 }
 
 /**
- * ดึงข้อมูลความจำทั้งหมดของผู้ใช้มาตรวจสอบ (Inspectable Memory)
+ * รวบรวมและวิเคราะห์ข้อมูลความจำทั้งหมดของผู้ใช้เพื่อนำมาแสดงผล (Inspectable Memory):
+ * - ประมวลผลกลุ่มคำศัพท์ทั้งหมดที่ผู้ใช้เคยบันทึก
+ * - ระบุหมวดหมู่ที่ใช้บ่อยที่สุดสำหรับแต่ละคำศัพท์ พร้อมคะแนนความมั่นใจ
+ *
+ * @param userId - รหัสผู้ใช้
+ * @returns รายการวิเคราะห์ความจำของผู้ใช้
  */
 export async function inspectUserMemory(userId: string): Promise<MemoryInsightItem[]> {
     const { transactions } = getCollections()
@@ -255,7 +306,11 @@ export async function inspectUserMemory(userId: string): Promise<MemoryInsightIt
 }
 
 /**
- * ดึงรายการธุรกรรมล่าสุดของผู้ใช้
+ * ดึงรายการประวัติธุรกรรมล่าสุดของผู้ใช้ เรียงลำดับจากรายการที่อัปเดตล่าสุด
+ *
+ * @param userId - รหัสผู้ใช้
+ * @param limit - จำนวนรายการสูงสุดที่ต้องการดึง
+ * @returns รายการ Transaction Documents ล่าสุด
  */
 export async function getRecentTransactions(userId: string, limit = 20): Promise<TransactionDoc[]> {
     const { transactions } = getCollections()
