@@ -168,6 +168,6 @@ bun run dev
 
 https://wakatime.com/@b5617e76-29cb-4464-8898-c452637c23bd/projects/usaecwkszz?start=2026-08-23&end=2026-08-29
 
-ผมใช้ AI ช่วยเขียน TEST และให้น้องช่วย daft UI บางส่วน เพื่อให้รวดเร็วขึ้นและ กลับมา Recheck เองทุกอย่างว่าถูกต้องตามที่ต้องการรึเปล่า
+ผมใช้ AI เป็น Accelerator ในการ Scaffold Test Cases และ Draft UI Template จากนั้นนำมา Review, Refactor Logic และ Validate ความถูกต้องทั้งหมดด้วยตัวเอง
 
 ![alt text](image-1.png)
