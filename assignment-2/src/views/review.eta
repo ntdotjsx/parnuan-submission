@@ -1,22 +1,27 @@
 <% if (!it.transactions || it.transactions.length === 0) { %>
   <div class="bg-amber-50 border border-dashed border-amber-300 rounded-2xl p-6 text-center text-amber-800 flex flex-col items-center gap-2">
-    <h3 class="text-base font-bold">ป้าหารายการที่สามารถแปลงได้ ไม่เจอ</h3>
+    <h3 class="text-base font-bold">ไม่พบรายการที่สามารถแปลงได้</h3>
     <p class="text-xs sm:text-sm text-amber-700">
-      ช่วยระบุชื่อรายการพร้อมจำนวนเงิน ให้ป้าหน่อย เช่น <strong>"ข้าวมันไก่ 50"</strong> หรือ <strong>"เมื่อวานขึ้น bts 45 ช้อปปิ้ง 200"</strong>
+      กรุณาระบุชื่อรายการพร้อมจำนวนเงิน เช่น <strong>"ข้าวมันไก่ 50"</strong> หรือ <strong>"เมื่อวานขึ้น bts 45 ช้อปปิ้ง 200"</strong>
     </p>
   </div>
 <% } else { %>
   <% const totalAmount = it.transactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0); %>
   <form hx-post="/ui/confirm" hx-target="#review" hx-swap="innerHTML" class="flex flex-col gap-4">
+    <input type="hidden" name="userId" value="<%= it.currentUser.id %>">
+
     <div class="bg-white rounded-2xl p-5 sm:p-6 border border-pink-200 shadow-md flex flex-col gap-5">
       <!-- Section Header -->
       <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
         <div class="flex items-center gap-2">
-          <h2 class="text-lg font-bold text-slate-800">ตรวจสอบรายการ (Review Transactions)</h2>
+          <h2 class="text-lg font-bold text-slate-800">ตรวจสอบรายการก่อนบันทึก (Review Transactions)</h2>
         </div>
-        <span class="bg-pink-100 text-[#d53583] text-xs font-bold px-3 py-1 rounded-full border border-pink-200">
-          <%= it.transactions.length %> รายการ
-        </span>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-500 font-medium">บันทึกให้: <strong><%= it.currentUser.name %></strong></span>
+          <span class="bg-pink-100 text-[#d53583] text-xs font-bold px-3 py-1 rounded-full border border-pink-200">
+            <%= it.transactions.length %> รายการ
+          </span>
+        </div>
       </div>
 
       <!-- Transactions Unified List Container -->
@@ -28,6 +33,7 @@
                   ? `${d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.`
                   : 'วันนี้';
                 const isHighConfidence = (transaction.confidence || 0) >= 0.8;
+                const isFromMemory = transaction.source === 'memory';
               %>
           <div class="p-4 bg-slate-50/40 hover:bg-white transition-colors flex flex-col gap-3">
             <input type="hidden" name="id" value="<%= transaction.id %>">
@@ -39,16 +45,28 @@
                 <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center">
                   <%= index + 1 %>
                 </span>
-                <span class="text-slate-500 font-medium flex items-center gap-1">
-                  📅 <%= formattedDate %>
+                <span class="text-slate-500 font-medium">
+                  วันที่: <%= formattedDate %>
                 </span>
               </div>
+
               <div class="flex items-center gap-2">
-                <% if (transaction.warning && transaction.warning.length > 0) { %>
-                  <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md border border-amber-200 font-medium">
-                    ⚠️ <%= transaction.warning[0] %>
+                <% if (isFromMemory) { %>
+                  <span class="bg-pink-100 text-pink-700 border border-pink-300 px-2 py-0.5 rounded-md font-bold text-xs">
+                    [จัดหมวดจากความจำ]
+                  </span>
+                <% } else { %>
+                  <span class="bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-md font-medium text-xs">
+                    [จัดหมวดโดยระบบ]
                   </span>
                 <% } %>
+
+                <% if (transaction.warning && transaction.warning.length > 0) { %>
+                  <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md border border-amber-200 font-medium">
+                    เตือน: <%= transaction.warning[0] %>
+                  </span>
+                <% } %>
+
                 <span class="<%= isHighConfidence ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200' %> px-2 py-0.5 rounded-md border font-medium">
                   ความมั่นใจ <%= Math.round((transaction.confidence || 1) * 100) %>%
                 </span>
@@ -72,7 +90,7 @@
                 </label>
                 <div class="relative">
                   <span class="absolute left-3 top-2 text-slate-400 font-bold text-sm">บาท</span>
-                  <input type="number" step="0.01" required name="amount" value="<%= transaction.amount %>" class="w-full pl-8 pr-3 py-2 text-sm font-bold text-slate-800 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-[#d53583] focus:ring-2 focus:ring-pink-500/20 text-right transition-all">
+                  <input type="number" step="0.01" required name="amount" value="<%= transaction.amount %>" class="w-full pl-10 pr-3 py-2 text-sm font-bold text-slate-800 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-[#d53583] focus:ring-2 focus:ring-pink-500/20 text-right transition-all">
                 </div>
               </div>
 
@@ -82,10 +100,10 @@
                   หมวดหมู่ (Category)
                 </label>
                 <select name="category" class="w-full px-2.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-[#d53583] focus:ring-2 focus:ring-pink-500/20 transition-all cursor-pointer">
-                  <option value="food" <%= (transaction.category?.id === 'food') ? 'selected' : '' %>>🍔 อาหาร</option>
-                  <option value="shopping" <%= (transaction.category?.id === 'shopping') ? 'selected' : '' %>>🛍️ ช้อปปิ้ง</option>
-                  <option value="transport" <%= (transaction.category?.id === 'transport') ? 'selected' : '' %>>🚗 เดินทาง</option>
-                  <option value="other" <%= (transaction.category?.id === 'other') ? 'selected' : '' %>>📦 อื่นๆ</option>
+                  <option value="food" <%= (transaction.category?.id === 'food') ? 'selected' : '' %>>อาหาร (food)</option>
+                  <option value="shopping" <%= (transaction.category?.id === 'shopping') ? 'selected' : '' %>>ช้อปปิ้ง (shopping)</option>
+                  <option value="transport" <%= (transaction.category?.id === 'transport') ? 'selected' : '' %>>ขนส่ง/เดินทาง (transport)</option>
+                  <option value="other" <%= (transaction.category?.id === 'other') ? 'selected' : '' %>>อื่นๆ (other)</option>
                 </select>
               </div>
             </div>
@@ -95,10 +113,7 @@
 
       <!-- Total Summary Card -->
       <div class="bg-pink-50/80 border border-pink-200 rounded-xl p-4 flex items-center justify-between">
-        <div class="flex items-center gap-2 text-slate-600 text-sm font-medium">
-          <span>🧾</span>
-          <span>สรุป <%= it.transactions.length %> รายการ</span>
-        </div>
+        <span class="text-slate-600 text-sm font-medium">สรุปทั้งหมด <%= it.transactions.length %> รายการ</span>
         <div class="text-right">
           <span class="text-xs text-slate-500 block">ยอดรวมทั้งสิ้น</span>
           <span class="text-xl font-bold text-[#d53583]">
@@ -108,8 +123,8 @@
       </div>
 
       <!-- Submit / Confirm Button -->
-      <button type="submit" class="w-full py-3 px-6 bg-gradient-to-r from-[#d53583] to-[#b51f68] hover:from-[#c22874] hover:to-[#9c1356] active:scale-[0.99] text-white font-bold text-base rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer">
-        <span>ยืนยันบันทึกทั้งหมด (Confirm)</span>
+      <button type="submit" class="w-full py-3 px-6 bg-gradient-to-r from-[#d53583] to-[#b51f68] hover:from-[#c22874] hover:to-[#9c1356] active:scale-[0.99] text-white font-bold text-base rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-md">
+        <span>ยืนยันบันทึกลงฐานข้อมูลและเรียนรู้ (Confirm & Learn)</span>
       </button>
     </div>
   </form>
