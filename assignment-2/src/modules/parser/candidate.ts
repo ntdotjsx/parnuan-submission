@@ -92,7 +92,7 @@ export function parseCandidate(
     if (!match) return null
 
     const description = match[1].trim()
-    const amount = Number(match[2])
+    const amount = Number(Number(match[2]).toFixed(2)) // แก้ปัญหา ถ้าผู้ใช้พิมพ์ ข้าวมันไก่ 50.123456789 ตัวเลขจะถูกแปลงเป็น float ยาวๆ ซึ่งในระบบเงินตราควรมีทศนิยมไม่เกิน 2 ตำแหน่ง หรือ สตางค์
 
     /**
      * Validation ข้อมูล Transaction

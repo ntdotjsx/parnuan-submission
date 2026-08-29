@@ -138,7 +138,7 @@ uiRouter.post('/ui/confirm', async (c) => {
             </div>
             <div class="text-right pl-3 shrink-0">
                 <span class="text-base font-bold text-emerald-600">
-                ฿${item.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${item.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท
                 </span>
             </div>
             </div>
@@ -178,7 +178,7 @@ uiRouter.post('/ui/confirm', async (c) => {
             <div class="text-right">
             <span class="text-xs text-emerald-600 block">ยอดรวมทั้งสิ้น</span>
             <span class="text-xl font-bold text-emerald-700">
-                ฿${totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท
             </span>
             </div>
         </div>
