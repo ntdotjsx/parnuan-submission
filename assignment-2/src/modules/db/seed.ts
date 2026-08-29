@@ -7,7 +7,7 @@ export async function seedUsersIfEmpty() {
     const count = await usersCollection.countDocuments()
     if (count > 0) return
 
-    console.log('🌱 Seeding mock users into database...')
+    console.log('[Seed] Seeding mock users into database...')
 
     const now = new Date()
     const mockUsers: UserDoc[] = [
@@ -28,5 +28,5 @@ export async function seedUsersIfEmpty() {
     ]
 
     await usersCollection.insertMany(mockUsers)
-    console.log('Mock users created successfully!')
+    console.log('[Seed] Mock users created successfully.')
 }

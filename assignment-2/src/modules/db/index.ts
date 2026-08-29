@@ -1,5 +1,5 @@
 import type { Db, MongoClient as MongoClientType } from 'mongodb'
-import type { TransactionDoc, UserSettingsDoc } from './models'
+import type { TransactionDoc, UserSettingsDoc, UserDoc } from './models'
 
 // Polyfill แก้ไขปัญหา Bun กับ bson/node:v8
 if (typeof globalThis.process?.getBuiltinModule === 'function') {
@@ -74,6 +74,7 @@ export function getCollections() {
     return {
         transactions: database.collection<TransactionDoc>('transactions'),
         userSettings: database.collection<UserSettingsDoc>('user_settings'),
+        users: database.collection<UserDoc>('users'),
     }
 }
 
@@ -84,18 +85,21 @@ async function initIndexes(database: Db): Promise<void> {
     try {
         const transactions = database.collection<TransactionDoc>('transactions')
         const userSettings = database.collection<UserSettingsDoc>('user_settings')
+        const users = database.collection<UserDoc>('users')
 
         await Promise.all([
             // Index สำหรับ Query Memory ด้วย userId + normalizedKey
             transactions.createIndex({ userId: 1, normalizedKey: 1 }),
-            // Index สำหรับ Query Memory ด้วย
+            // Index สำหรับ Query Memory ด้วยเวลา
             transactions.createIndex({ userId: 1, updatedAt: -1 }),
             // Unique Index สำหรับการตั้งค่าผู้ใช้
             userSettings.createIndex({ userId: 1 }, { unique: true }),
+            // Unique Index สำหรับ User ID
+            users.createIndex({ id: 1 }, { unique: true }),
         ])
         console.log('[MongoDB] Indexes initialized successfully.')
     } catch (error) {
-        console.warn('MongoDB] Index initialization warning:', error)
+        console.warn('[MongoDB] Index initialization warning:', error)
     }
 }
 
