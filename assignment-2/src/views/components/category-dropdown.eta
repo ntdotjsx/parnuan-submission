@@ -1,0 +1,96 @@
+<%
+  const currentTitle = it.categoryTitle || 'อาหาร';
+  const inputName = it.name || 'category';
+  const autoSubmit = it.autoSubmit || false;
+%>
+<div class="relative custom-category-dropdown">
+  <input type="hidden" name="<%= inputName %>" class="category-hidden-input" value="<%= currentTitle %>">
+
+  <!-- Custom Dropdown Trigger Button -->
+  <button
+    type="button"
+    onclick="toggleCategoryMenu(this)"
+    class="w-full px-2.5 py-1.5 text-xs font-semibold text-slate-800 bg-white border border-slate-200 rounded-xl hover:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-500/20 shadow-2xs transition-all flex items-center justify-between cursor-pointer group gap-1.5"
+  >
+    <span class="selected-category-label flex items-center gap-1.5 truncate">
+      <% if (currentTitle === 'อาหาร' || it.categoryId === 'food') { %>
+        🍔 อาหาร (food)
+      <% } else if (currentTitle === 'ข้าวเช้า' || it.categoryId === 'breakfast') { %>
+        🍳 ข้าวเช้า (breakfast)
+      <% } else if (currentTitle === 'ข้าวเที่ยง' || it.categoryId === 'lunch') { %>
+        🍛 ข้าวเที่ยง (lunch)
+      <% } else if (currentTitle === 'ข้าวเย็น' || it.categoryId === 'dinner') { %>
+        🍲 ข้าวเย็น (dinner)
+      <% } else if (currentTitle === 'กาแฟ/เครื่องดื่ม' || it.categoryId === 'cafe') { %>
+        ☕ กาแฟ/เครื่องดื่ม (cafe)
+      <% } else if (currentTitle === 'ช้อปปิ้ง' || it.categoryId === 'shopping') { %>
+        🛍️ ช้อปปิ้ง (shopping)
+      <% } else if (currentTitle === 'ขนส่ง/เดินทาง' || it.categoryId === 'transport') { %>
+        🚗 ขนส่ง/เดินทาง (transport)
+      <% } else if (currentTitle === 'อื่นๆ' || it.categoryId === 'other') { %>
+        📦 อื่นๆ (other)
+      <% } else { %>
+        ✨ <%= currentTitle %>
+      <% } %>
+    </span>
+    <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-[#d53583] transition-transform duration-200 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+    </svg>
+  </button>
+
+  <!-- Custom Floating Menu Popover -->
+  <div class="category-menu-popover hidden absolute right-0 mt-1.5 w-60 bg-white border border-slate-200 rounded-2xl shadow-xl p-2 z-50 flex flex-col gap-1 max-h-64 overflow-y-auto">
+    <button type="button" onclick="selectCategoryItem(this, 'อาหาร', <%= autoSubmit %>)" class="w-full text-left px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-pink-50 hover:text-[#d53583] rounded-xl transition-all flex items-center justify-between cursor-pointer">
+      <span>🍔 อาหาร (food)</span>
+    </button>
+    <button type="button" onclick="selectCategoryItem(this, 'ข้าวเช้า', <%= autoSubmit %>)" class="w-full text-left px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-pink-50 hover:text-[#d53583] rounded-xl transition-all flex items-center justify-between cursor-pointer">
+      <span>🍳 ข้าวเช้า (breakfast)</span>
+    </button>
+    <button type="button" onclick="selectCategoryItem(this, 'ข้าวเที่ยง', <%= autoSubmit %>)" class="w-full text-left px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-pink-50 hover:text-[#d53583] rounded-xl transition-all flex items-center justify-between cursor-pointer">
+      <span>🍛 ข้าวเที่ยง (lunch)</span>
+    </button>
+    <button type="button" onclick="selectCategoryItem(this, 'ข้าวเย็น', <%= autoSubmit %>)" class="w-full text-left px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-pink-50 hover:text-[#d53583] rounded-xl transition-all flex items-center justify-between cursor-pointer">
+      <span>🍲 ข้าวเย็น (dinner)</span>
+    </button>
+    <button type="button" onclick="selectCategoryItem(this, 'กาแฟ/เครื่องดื่ม', <%= autoSubmit %>)" class="w-full text-left px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-pink-50 hover:text-[#d53583] rounded-xl transition-all flex items-center justify-between cursor-pointer">
+      <span>☕ กาแฟ/เครื่องดื่ม (cafe)</span>
+    </button>
+    <button type="button" onclick="selectCategoryItem(this, 'ช้อปปิ้ง', <%= autoSubmit %>)" class="w-full text-left px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-pink-50 hover:text-[#d53583] rounded-xl transition-all flex items-center justify-between cursor-pointer">
+      <span>🛍️ ช้อปปิ้ง (shopping)</span>
+    </button>
+    <button type="button" onclick="selectCategoryItem(this, 'ขนส่ง/เดินทาง', <%= autoSubmit %>)" class="w-full text-left px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-pink-50 hover:text-[#d53583] rounded-xl transition-all flex items-center justify-between cursor-pointer">
+      <span>🚗 ขนส่ง/เดินทาง (transport)</span>
+    </button>
+    <button type="button" onclick="selectCategoryItem(this, 'อื่นๆ', <%= autoSubmit %>)" class="w-full text-left px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-pink-50 hover:text-[#d53583] rounded-xl transition-all flex items-center justify-between cursor-pointer">
+      <span>📦 อื่นๆ (other)</span>
+    </button>
+
+    <!-- Custom Category Inline Input -->
+    <div class="border-t border-slate-100 my-1"></div>
+    <div class="custom-category-action-area">
+      <button
+        type="button"
+        onclick="showCustomCategoryInput(this)"
+        class="custom-category-trigger-btn w-full text-left px-3 py-1.5 text-xs font-bold text-[#d53583] bg-pink-50 hover:bg-pink-100 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+      >
+        <span>✏️ + พิมพ์หมวดหมู่เอง...</span>
+      </button>
+
+      <div class="custom-category-input-box hidden flex items-center gap-1.5 p-1 bg-pink-50 rounded-xl border border-pink-200 mt-1">
+        <input
+          type="text"
+          placeholder="พิมพ์ชื่อหมวดหมู่..."
+          class="custom-category-text w-full px-2 py-1 text-xs font-semibold text-slate-800 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-[#d53583] focus:ring-1 focus:ring-pink-500"
+          onkeydown="if(event.key==='Enter'){ event.preventDefault(); applyCustomCategoryInline(this, <%= autoSubmit %>); }"
+        />
+        <button
+          type="button"
+          onclick="applyCustomCategoryInline(this, <%= autoSubmit %>)"
+          class="px-2.5 py-1 text-xs font-bold text-white bg-[#d53583] hover:bg-[#b51f68] rounded-lg transition-all cursor-pointer shrink-0 shadow-xs"
+        >
+          ตกลง
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

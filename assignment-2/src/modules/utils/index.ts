@@ -1,5 +1,5 @@
 import type { FindCategoryResult } from "../parser/types"
-import { CATEGORIES, CATEGORY_KEYWORDS } from "../constants/categories"
+import { CATEGORIES, CATEGORY_KEYWORDS, resolveCategory } from "../constants/categories"
 
 // Creates a unique ID
 export function createId(): string {
@@ -81,8 +81,12 @@ export function findCategory(description: string): FindCategoryResult {
     }
 }
 
-// ฟังก์ชันแปลง categoryId เป็นชื่อภาษาไทย
+/**
+ * แปลง categoryId หรือชื่อหมวดหมู่ให้เป็นชื่อภาษาไทยที่อ่านง่าย
+ *
+ * @param catId - รหัสหมวดหมู่ หรือชื่อหมวดหมู่
+ * @returns ชื่อภาษาไทยของหมวดหมู่นั้น
+ */
 export const getCategoryTitle = (catId: string): string => {
-    const found = CATEGORIES.find((c) => c.id === catId)
-    return found ? found.title : catId
+    return resolveCategory(catId).title
 }

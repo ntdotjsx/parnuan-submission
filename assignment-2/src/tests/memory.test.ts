@@ -1,4 +1,4 @@
-﻿import { describe, expect, it, beforeAll, afterAll, beforeEach } from 'vitest'
+import { describe, expect, it, beforeAll, afterAll, beforeEach } from 'vitest'
 import { connectDb, closeDb, getCollections } from '../modules/db'
 import {
     normalizeMemoryKey,
@@ -8,6 +8,8 @@ import {
     getMemoryMatch,
     updateTransactionCategory,
     inspectUserMemory,
+    deleteUserMemoryKey,
+    clearAllUserMemory,
 } from '../modules/memory/service'
 
 /**
@@ -265,6 +267,106 @@ describe('Memory Layer Service', () => {
             expect(bts?.preferredCategoryId).toBe('transport')
             expect(bts?.frequency).toBe(1)
             expect(bts?.confidence).toBe(0.85)
+        })
+    })
+
+    /**
+     * การทดสอบการเรียนรู้หมวดหมู่เฉพาะมื้ออาหารและหมวดหมู่ที่ผู้ใช้สร้างเอง
+     */
+    describe('Custom & Meal Category Learning', () => {
+        /**
+         * ตรวจสอบว่าระบบสามารถเรียนรู้หมวดหมู่เฉพาะ เช่น ข้าวเช้า ข้าวเที่ยง หรือหมวดหมู่ที่ผู้ใช้พิมพ์เอง
+         */
+        it('should learn custom user categories and meal-specific categories', async () => {
+            const testUserId = 'test_user_custom_cat'
+
+            await learnTransactions(testUserId, [
+                {
+                    description: 'ข้าวมันไก่',
+                    amount: 50,
+                    categoryId: 'breakfast',
+                    categoryTitle: 'ข้าวเช้า',
+                },
+                {
+                    description: 'ทรายแมว',
+                    amount: 190,
+                    categoryId: 'pet_supplies',
+                    categoryTitle: 'อาหาร/ของใช้สัตว์เลี้ยง',
+                },
+            ])
+
+            const matchBreakfast = await getMemoryMatch(testUserId, 'ข้าวมันไก่')
+            expect(matchBreakfast).not.toBeNull()
+            expect(matchBreakfast?.categoryId).toBe('breakfast')
+            expect(matchBreakfast?.categoryTitle).toBe('ข้าวเช้า')
+
+            const matchPet = await getMemoryMatch(testUserId, 'ทรายแมว')
+            expect(matchPet).not.toBeNull()
+            expect(matchPet?.categoryId).toBe('pet_supplies')
+            expect(matchPet?.categoryTitle).toBe('อาหาร/ของใช้สัตว์เลี้ยง')
+        })
+    })
+
+    /**
+     * การทดสอบการลบความจำเฉพาะคำและการล้างความจำทั้งหมด
+     */
+    describe('Memory Deletion & Resetting', () => {
+        /**
+         * ตรวจสอบว่าสามารถลบความจำของคำเฉพาะได้อย่างถูกต้อง และคำอื่นๆ ยังคงอยู่
+         */
+        it('should delete memory for a specific keyword', async () => {
+            const testUserId = 'test_user_delete_key'
+
+            await learnTransactions(testUserId, [
+                {
+                    description: 'ข้าวมันไก่',
+                    amount: 50,
+                    categoryId: 'food',
+                    categoryTitle: 'อาหาร',
+                },
+                {
+                    description: 'bts หมอชิต',
+                    amount: 45,
+                    categoryId: 'transport',
+                    categoryTitle: 'เดินทาง',
+                },
+            ])
+
+            expect(await getMemoryMatch(testUserId, 'ข้าวมันไก่')).not.toBeNull()
+
+            const deletedCount = await deleteUserMemoryKey(testUserId, 'ข้าวมันไก่')
+            expect(deletedCount).toBe(1)
+
+            expect(await getMemoryMatch(testUserId, 'ข้าวมันไก่')).toBeNull()
+            expect(await getMemoryMatch(testUserId, 'bts หมอชิต')).not.toBeNull()
+        })
+
+        /**
+         * ตรวจสอบว่าสามารถล้างความจำทั้งหมดของผู้ใช้ได้
+         */
+        it('should clear all memories for a user', async () => {
+            const testUserId = 'test_user_clear_all'
+
+            await learnTransactions(testUserId, [
+                {
+                    description: 'ข้าวมันไก่',
+                    amount: 50,
+                    categoryId: 'food',
+                    categoryTitle: 'อาหาร',
+                },
+                {
+                    description: 'bts หมอชิต',
+                    amount: 45,
+                    categoryId: 'transport',
+                    categoryTitle: 'เดินทาง',
+                },
+            ])
+
+            const deletedCount = await clearAllUserMemory(testUserId)
+            expect(deletedCount).toBe(2)
+
+            const memories = await inspectUserMemory(testUserId)
+            expect(memories).toHaveLength(0)
         })
     })
 })

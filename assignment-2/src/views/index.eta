@@ -104,14 +104,28 @@
           </div>
 
           <!-- Inspectable Memory Insights Sidebar Card -->
-          <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col gap-4">
+          <div id="memory-insights-card" class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col gap-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
               <div class="flex items-center gap-2">
                 <h2 class="text-sm font-bold text-slate-900">สิ่งที่ระบบจำได้ (Memory Insights)</h2>
               </div>
-              <span class="text-[11px] bg-pink-50 text-[#d53583] font-bold px-2.5 py-0.5 rounded-full border border-pink-200">
-                <%= it.memories.length %> คำ
-              </span>
+              <div class="flex items-center gap-2">
+                <% if (it.memories.length > 0) { %>
+                  <button
+                    hx-post="/ui/memory/clear"
+                    hx-vals='{"userId": "<%= it.currentUser.id %>"}'
+                    hx-target="#memory-insights-card"
+                    hx-swap="outerHTML"
+                    hx-confirm="ต้องการล้างความจำทั้งหมดของ <%= it.currentUser.name %> ใช่หรือไม่?"
+                    class="text-[11px] text-red-500 hover:text-red-700 hover:underline font-medium cursor-pointer"
+                  >
+                    ล้างทั้งหมด
+                  </button>
+                <% } %>
+                <span class="text-[11px] bg-pink-50 text-[#d53583] font-bold px-2.5 py-0.5 rounded-full border border-pink-200">
+                  <%= it.memories.length %> คำ
+                </span>
+              </div>
             </div>
 
             <p class="text-xs text-slate-500 -mt-1">
@@ -128,9 +142,24 @@
                   <div class="p-3 bg-slate-50/80 border border-slate-200 rounded-xl flex flex-col gap-1.5 hover:border-pink-300 hover:bg-white transition-all shadow-2xs">
                     <div class="flex items-center justify-between gap-2">
                       <span class="text-xs font-bold text-slate-800 break-words"><%= mem.keyword %></span>
-                      <span class="text-[11px] bg-pink-50 text-[#d53583] border border-pink-200 px-2 py-0.5 rounded font-semibold shrink-0">
-                        <%= mem.preferredCategoryTitle %>
-                      </span>
+                      <div class="flex items-center gap-1.5 shrink-0">
+                        <span class="text-[11px] bg-pink-50 text-[#d53583] border border-pink-200 px-2 py-0.5 rounded font-semibold">
+                          <%= mem.preferredCategoryTitle %>
+                        </span>
+                        <button
+                          hx-post="/ui/memory/delete"
+                          hx-vals='{"userId": "<%= it.currentUser.id %>", "keyword": "<%= mem.keyword %>"}'
+                          hx-target="#memory-insights-card"
+                          hx-swap="outerHTML"
+                          hx-confirm="ต้องการลบความจำ '<%= mem.keyword %>' ใช่หรือไม่?"
+                          class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-lg transition-all cursor-pointer"
+                          title="ลบความจำคำนี้"
+                        >
+                          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                     <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1.5 border-t border-slate-200/50">
                       <span>ใช้ไป: <strong class="text-slate-700"><%= mem.frequency %> ครั้ง</strong></span>
@@ -209,9 +238,9 @@
                 ยังไม่มีประวัติรายการสำหรับ <%= it.currentUser.name %>
               </div>
             <% } else { %>
-              <div class="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-200 bg-white">
+              <div class="border border-slate-200 rounded-xl divide-y divide-slate-200 bg-white overflow-visible">
                 <% it.transactions.forEach((tx, idx) => { %>
-                  <div class="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
+                  <div class="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition-colors relative first:rounded-t-xl last:rounded-b-xl">
                     <div class="flex items-center gap-3">
                       <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center shrink-0">
                         #<%= idx + 1 %>
@@ -227,17 +256,13 @@
                         <%= tx.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %> บาท
                       </span>
 
-                      <!-- Interactive Category Edit Form for Flow 2 Demo -->
+                      <!-- Interactive Category Edit Form for Flow 2 Demo with Custom Dropdown Component -->
                       <form hx-post="/ui/transactions/edit" hx-target="#tx-status-<%= tx.id %>" hx-swap="innerHTML" class="flex items-center gap-2">
                         <input type="hidden" name="userId" value="<%= it.currentUser.id %>">
                         <input type="hidden" name="transactionId" value="<%= tx.id %>">
-                        <select name="categoryId" onchange="this.form.requestSubmit()" class="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 focus:outline-none focus:border-[#d53583] focus:ring-1 focus:ring-pink-500 cursor-pointer shadow-2xs">
-                          <% it.categories.forEach((cat) => { %>
-                            <option value="<%= cat.id %>" <%= (cat.id === tx.categoryId) ? 'selected' : '' %>>
-                              <%= cat.title %>
-                            </option>
-                          <% }) %>
-                        </select>
+                        <div class="w-48">
+                          <%~ include('components/category-dropdown', { categoryTitle: tx.categoryTitle, categoryId: tx.categoryId, name: 'categoryId', autoSubmit: true }) %>
+                        </div>
                         <div id="tx-status-<%= tx.id %>"></div>
                       </form>
                     </div>
@@ -249,6 +274,89 @@
         </main>
       </div>
     </div>
+
+    <!-- Global Client Script for Custom Category Dropdown Component -->
+    <script>
+      function toggleCategoryMenu(btn) {
+        const container = btn.closest('.custom-category-dropdown');
+        const popover = container.querySelector('.category-menu-popover');
+        const isOpening = popover.classList.contains('hidden');
+
+        document.querySelectorAll('.category-menu-popover').forEach(p => {
+          p.classList.add('hidden');
+          p.closest('.custom-category-dropdown')?.classList.remove('z-50');
+        });
+
+        if (isOpening) {
+          popover.classList.remove('hidden');
+          container.classList.add('z-50');
+        }
+      }
+
+      function selectCategoryItem(itemBtn, catName, autoSubmit) {
+        const container = itemBtn.closest('.custom-category-dropdown');
+        const input = container.querySelector('.category-hidden-input');
+        const label = container.querySelector('.selected-category-label');
+        const popover = container.querySelector('.category-menu-popover');
+
+        input.value = catName;
+        label.innerHTML = itemBtn.querySelector('span').innerHTML;
+        popover.classList.add('hidden');
+        container.classList.remove('z-50');
+
+        if (autoSubmit) {
+          const form = container.closest('form');
+          if (form) form.requestSubmit();
+        }
+      }
+
+      function showCustomCategoryInput(btn) {
+        const area = btn.closest('.custom-category-action-area');
+        const triggerBtn = area.querySelector('.custom-category-trigger-btn');
+        const inputBox = area.querySelector('.custom-category-input-box');
+        const textInput = area.querySelector('.custom-category-text');
+
+        triggerBtn.classList.add('hidden');
+        inputBox.classList.remove('hidden');
+        textInput.focus();
+      }
+
+      function applyCustomCategoryInline(btnOrInput, autoSubmit) {
+        const container = btnOrInput.closest('.custom-category-dropdown');
+        const area = container.querySelector('.custom-category-action-area');
+        const textInput = area.querySelector('.custom-category-text');
+        const customVal = (textInput.value || '').trim();
+
+        if (customVal) {
+          const input = container.querySelector('.category-hidden-input');
+          const label = container.querySelector('.selected-category-label');
+          const popover = container.querySelector('.category-menu-popover');
+
+          input.value = customVal;
+          label.innerHTML = '✨ ' + customVal;
+          popover.classList.add('hidden');
+          container.classList.remove('z-50');
+
+          textInput.value = '';
+          area.querySelector('.custom-category-trigger-btn').classList.remove('hidden');
+          area.querySelector('.custom-category-input-box').classList.add('hidden');
+
+          if (autoSubmit) {
+            const form = container.closest('form');
+            if (form) form.requestSubmit();
+          }
+        }
+      }
+
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.custom-category-dropdown')) {
+          document.querySelectorAll('.category-menu-popover').forEach(p => {
+            p.classList.add('hidden');
+            p.closest('.custom-category-dropdown')?.classList.remove('z-50');
+          });
+        }
+      });
+    </script>
   </body>
 
 </html>

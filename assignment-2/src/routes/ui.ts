@@ -11,8 +11,10 @@ import {
     updateTransactionCategory,
     inspectUserMemory,
     getRecentTransactions,
+    deleteUserMemoryKey,
+    clearAllUserMemory,
 } from '../modules/memory/service'
-import { CATEGORIES } from '../modules/constants/categories'
+import { CATEGORIES, resolveCategory } from '../modules/constants/categories'
 
 const eta = new Eta({ views: './src/views' })
 export const uiRouter = new Hono()
@@ -21,8 +23,88 @@ export const uiRouter = new Hono()
  * ฟังก์ชันตัวช่วยสำหรับค้นหาชื่อหมวดหมู่ภาษาไทยจาก Category ID
  */
 const getCategoryTitle = (catId: string): string => {
-    const found = CATEGORIES.find((c) => c.id === catId)
-    return found ? found.title : catId
+    return resolveCategory(catId).title
+}
+
+/**
+ * ฟังก์ชันเรนเดอร์การ์ด Memory Insights สำหรับอัปเดตแบบ Dynamic ผ่าน HTMX
+ */
+const renderMemoryInsightsCardHtml = (user: { id: string; name: string }, memories: Array<{
+    keyword: string
+    preferredCategoryTitle: string
+    frequency: number
+    confidence: number
+}>): string => {
+    const memoryItemsHtml = memories.length === 0
+        ? `<div class="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-5 text-center text-slate-500 text-xs">
+            ยังไม่มีความจำที่บันทึกไว้สำหรับผู้ใช้นี้ (ทดลองพิมพ์และกดยืนยันบันทึกทางขวาเพื่อสอนระบบ)
+           </div>`
+        : `<div class="flex flex-col gap-2 max-h-[380px] overflow-y-auto pr-1">
+            ${memories.map((mem) => `
+                <div class="p-3 bg-slate-50/80 border border-slate-200 rounded-xl flex flex-col gap-1.5 hover:border-pink-300 hover:bg-white transition-all shadow-2xs">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-bold text-slate-800 break-words">${mem.keyword}</span>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span class="text-[11px] bg-pink-50 text-[#d53583] border border-pink-200 px-2 py-0.5 rounded font-semibold">
+                                ${mem.preferredCategoryTitle}
+                            </span>
+                            <button
+                                hx-post="/ui/memory/delete"
+                                hx-vals='{"userId": "${user.id}", "keyword": "${mem.keyword}"}'
+                                hx-target="#memory-insights-card"
+                                hx-swap="outerHTML"
+                                hx-confirm="ต้องการลบความจำ '${mem.keyword}' ใช่หรือไม่?"
+                                class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-lg transition-all cursor-pointer"
+                                title="ลบความจำคำนี้"
+                            >
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1.5 border-t border-slate-200/50">
+                        <span>ใช้ไป: <strong class="text-slate-700">${mem.frequency} ครั้ง</strong></span>
+                        <span class="text-emerald-600 font-semibold">มั่นใจ ${Math.round(mem.confidence * 100)}%</span>
+                    </div>
+                </div>
+            `).join('')}
+           </div>`
+
+    const clearAllButton = memories.length > 0
+        ? `<button
+            hx-post="/ui/memory/clear"
+            hx-vals='{"userId": "${user.id}"}'
+            hx-target="#memory-insights-card"
+            hx-swap="outerHTML"
+            hx-confirm="ต้องการล้างความจำทั้งหมดของ ${user.name} ใช่หรือไม่?"
+            class="text-[11px] text-red-500 hover:text-red-700 hover:underline font-medium cursor-pointer"
+           >
+            ล้างทั้งหมด
+           </button>`
+        : ''
+
+    return `
+        <div id="memory-insights-card" class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col gap-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <h2 class="text-sm font-bold text-slate-900">สิ่งที่ระบบจำได้ (Memory Insights)</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    ${clearAllButton}
+                    <span class="text-[11px] bg-pink-50 text-[#d53583] font-bold px-2.5 py-0.5 rounded-full border border-pink-200">
+                        ${memories.length} คำ
+                    </span>
+                </div>
+            </div>
+
+            <p class="text-xs text-slate-500 -mt-1">
+                คำศัพท์ที่เรียนรู้จากประวัติของ <strong class="text-slate-700">${user.name}</strong>
+            </p>
+
+            ${memoryItemsHtml}
+        </div>
+    `
 }
 
 /**
@@ -167,12 +249,14 @@ uiRouter.post('/ui/confirm', async (c) => {
 
             if (!isDescValid || !isAmountValid) return null
 
+            const resolvedCat = resolveCategory(rawCat)
+
             return {
                 id: ids[i] || undefined,
                 description: desc,
                 amount: rawAmount,
-                categoryId: rawCat,
-                categoryTitle: getCategoryTitle(rawCat),
+                categoryId: resolvedCat.id,
+                categoryTitle: resolvedCat.title,
                 date: dates[i] || new Date().toISOString(),
             }
         })
@@ -319,15 +403,15 @@ uiRouter.post('/ui/transactions/edit', async (c) => {
     const body = await c.req.parseBody()
     const userId = String(body.userId ?? '')
     const transactionId = String(body.transactionId ?? '')
-    const categoryId = String(body.categoryId ?? '')
+    const categoryInput = String(body.categoryId ?? '')
 
     const user = await resolveUser(userId)
     if (!user) {
         return c.text('User not found', 404)
     }
 
-    const categoryTitle = getCategoryTitle(categoryId)
-    const success = await updateTransactionCategory(user.id, transactionId, categoryId, categoryTitle)
+    const resolved = resolveCategory(categoryInput)
+    const success = await updateTransactionCategory(user.id, transactionId, resolved.id, resolved.title)
 
     if (!success) {
         return c.html(`
@@ -338,8 +422,51 @@ uiRouter.post('/ui/transactions/edit', async (c) => {
     return c.html(`
         <div class="flex items-center gap-2">
             <span class="text-xs bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded font-medium">
-                อัปเดตเป็น: ${categoryTitle} (ความจำซิงค์แล้ว)
+                อัปเดตเป็น: ${resolved.title} (ความจำซิงค์แล้ว)
             </span>
         </div>
     `)
 })
+
+/**
+ * Route: POST /ui/memory/delete
+ *
+ * ลบความจำสำหรับคำสำคัญที่ระบุ และส่งคืนการ์ด Memory Insights ฉบับอัปเดต
+ */
+uiRouter.post('/ui/memory/delete', async (c) => {
+    const body = await c.req.parseBody()
+    const userId = String(body.userId ?? '')
+    const keyword = String(body.keyword ?? '')
+
+    const user = await resolveUser(userId)
+    if (!user) {
+        return c.text('User not found', 404)
+    }
+
+    if (keyword) {
+        await deleteUserMemoryKey(user.id, keyword)
+    }
+
+    const updatedMemories = await inspectUserMemory(user.id)
+    return c.html(renderMemoryInsightsCardHtml(user, updatedMemories))
+})
+
+/**
+ * Route: POST /ui/memory/clear
+ *
+ * ล้างความจำทั้งหมดของผู้ใช้ และส่งคืนการ์ด Memory Insights ฉบับว่างเปล่า
+ */
+uiRouter.post('/ui/memory/clear', async (c) => {
+    const body = await c.req.parseBody()
+    const userId = String(body.userId ?? '')
+
+    const user = await resolveUser(userId)
+    if (!user) {
+        return c.text('User not found', 404)
+    }
+
+    await clearAllUserMemory(user.id)
+
+    const updatedMemories = await inspectUserMemory(user.id)
+    return c.html(renderMemoryInsightsCardHtml(user, updatedMemories))
+})

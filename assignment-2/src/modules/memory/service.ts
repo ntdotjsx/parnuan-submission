@@ -320,3 +320,34 @@ export async function getRecentTransactions(userId: string, limit = 20): Promise
         .limit(limit)
         .toArray()
 }
+
+/**
+ * ลบความจำสำหรับคำศัพท์ที่ระบุของผู้ใช้:
+ * ทำการลบรายการธุรกรรมที่มี normalizedKey ตรงกันสำหรับผู้ใช้นั้น
+ *
+ * @param userId - รหัสผู้ใช้
+ * @param keyword - คำศัพท์ที่ต้องการลบ
+ * @returns จำนวนรายการที่ถูกลบ
+ */
+export async function deleteUserMemoryKey(userId: string, keyword: string): Promise<number> {
+    const { transactions } = getCollections()
+    const normKey = normalizeMemoryKey(keyword)
+    const result = await transactions.deleteMany({
+        userId,
+        normalizedKey: normKey,
+    })
+    return result.deletedCount
+}
+
+/**
+ * ล้างความจำทั้งหมดของผู้ใช้:
+ * ทำการลบรายการธุรกรรมทั้งหมดของผู้ใช้งานนั้น
+ *
+ * @param userId - รหัสผู้ใช้
+ * @returns จำนวนรายการทั้งหมดที่ถูกลบ
+ */
+export async function clearAllUserMemory(userId: string): Promise<number> {
+    const { transactions } = getCollections()
+    const result = await transactions.deleteMany({ userId })
+    return result.deletedCount
+}

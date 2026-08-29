@@ -25,7 +25,7 @@
       </div>
 
       <!-- Transactions Unified List Container -->
-      <div class="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-200 bg-white shadow-xs">
+      <div class="border border-slate-200 rounded-xl divide-y divide-slate-200 bg-white shadow-xs overflow-visible">
         <% it.transactions.forEach((transaction, index) => { %>
           <%
                 const d = new Date(transaction.date);
@@ -34,8 +34,9 @@
                   : 'วันนี้';
                 const isHighConfidence = (transaction.confidence || 0) >= 0.8;
                 const isFromMemory = transaction.source === 'memory';
+                const categoryTitle = transaction.category?.title || 'อาหาร';
               %>
-          <div class="p-4 bg-slate-50/40 hover:bg-white transition-colors flex flex-col gap-3">
+          <div class="p-4 bg-slate-50/40 hover:bg-white transition-colors flex flex-col gap-3 relative first:rounded-t-xl last:rounded-b-xl">
             <input type="hidden" name="id" value="<%= transaction.id %>">
             <input type="hidden" name="date" value="<%= transaction.date %>">
 
@@ -51,16 +52,6 @@
               </div>
 
               <div class="flex items-center gap-2">
-                <% if (isFromMemory) { %>
-                  <span class="bg-pink-100 text-pink-700 border border-pink-300 px-2 py-0.5 rounded-md font-bold text-xs">
-                    🧠 [จัดหมวดจากความจำ]
-                  </span>
-                <% } else { %>
-                  <span class="bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-md font-medium text-xs">
-                    ⚙️ [จัดหมวดโดยระบบ]
-                  </span>
-                <% } %>
-
                 <% if (transaction.warning && transaction.warning.length > 0) { %>
                   <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md border border-amber-200 font-medium">
                     ⚠️ <%= transaction.warning[0] %>
@@ -76,7 +67,7 @@
             <!-- Item Input Controls -->
             <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
               <!-- Description Input -->
-              <div class="sm:col-span-6 flex flex-col gap-1">
+              <div class="sm:col-span-5 flex flex-col gap-1">
                 <label class="text-xs font-semibold text-slate-600">
                   รายการ (Description)
                 </label>
@@ -94,17 +85,12 @@
                 </div>
               </div>
 
-              <!-- Category Select -->
-              <div class="sm:col-span-3 flex flex-col gap-1">
+              <!-- Custom Styled Category Dropdown Component -->
+              <div class="sm:col-span-4 flex flex-col gap-1">
                 <label class="text-xs font-semibold text-slate-600">
                   หมวดหมู่ (Category)
                 </label>
-                <select name="category" class="w-full px-2.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-[#d53583] focus:ring-2 focus:ring-pink-500/20 transition-all cursor-pointer">
-                  <option value="food" <%= (transaction.category?.id === 'food') ? 'selected' : '' %>>🍔 อาหาร (food)</option>
-                  <option value="shopping" <%= (transaction.category?.id === 'shopping') ? 'selected' : '' %>>🛍️ ช้อปปิ้ง (shopping)</option>
-                  <option value="transport" <%= (transaction.category?.id === 'transport') ? 'selected' : '' %>>🚗 ขนส่ง/เดินทาง (transport)</option>
-                  <option value="other" <%= (transaction.category?.id === 'other') ? 'selected' : '' %>>📦 อื่นๆ (other)</option>
-                </select>
+                <%~ include('components/category-dropdown', { categoryTitle, categoryId: transaction.category?.id, name: 'category', autoSubmit: false }) %>
               </div>
             </div>
           </div>

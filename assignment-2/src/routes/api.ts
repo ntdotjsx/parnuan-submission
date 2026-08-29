@@ -11,6 +11,8 @@ import {
     getRecentTransactions,
     resolveUser,
     getAllUsers,
+    deleteUserMemoryKey,
+    clearAllUserMemory,
 } from '../modules/memory/service'
 import { CATEGORIES } from '../modules/constants/categories'
 
@@ -353,3 +355,83 @@ apiRouter.get('/transactions', async (c) => {
         transactions,
     })
 })
+
+/**
+ * Route: DELETE /api/memory
+ *
+ * ลบความจำสำหรับคำสำคัญที่ระบุของผู้ใช้:
+ * - ลบประวัติธุรกรรมทั้งหมดที่มี keyword ตรงกันของผู้ใช้
+ *
+ * @param c - Context ของ Hono Framework พร้อม Query Param ?userId=...&keyword=... หรือ JSON Body
+ * @returns ผลลัพธ์จำนวนรายการที่ถูกลบ
+ */
+apiRouter.delete('/memory', async (c) => {
+    let rawUserId = c.req.query('userId') || c.req.header('x-user-id')
+    let keyword = c.req.query('keyword')
+
+    if (!keyword && c.req.header('content-type')?.includes('application/json')) {
+        try {
+            const body = await c.req.json()
+            rawUserId = body.userId || rawUserId
+            keyword = body.keyword
+        } catch {
+            // Ignore parse errors
+        }
+    }
+
+    const user = await resolveUser(rawUserId)
+    if (!user) {
+        return c.json({ error: `User '${rawUserId}' not found in database.` }, 404)
+    }
+
+    if (!keyword || typeof keyword !== 'string' || !keyword.trim()) {
+        return c.json({ error: 'keyword is required and must be a non-empty string' }, 400)
+    }
+
+    const deletedCount = await deleteUserMemoryKey(user.id, keyword)
+
+    return c.json({
+        success: true,
+        user: { id: user.id, name: user.name },
+        keyword: keyword.trim(),
+        deletedCount,
+        message: `ลบความจำคำว่า '${keyword.trim()}' สำเร็จ (${deletedCount} รายการ)`,
+    })
+})
+
+/**
+ * Route: POST /api/memory/clear
+ *
+ * ล้างประวัติความจำทั้งหมดของผู้ใช้:
+ * - ลบประวัติธุรกรรมทั้งหมดของผู้ใช้งานนั้น
+ *
+ * @param c - Context ของ Hono Framework พร้อม Request Body { userId: string }
+ * @returns จำนวนรายการทั้งหมดที่ถูกล้าง
+ */
+apiRouter.post('/memory/clear', async (c) => {
+    let rawUserId = c.req.query('userId') || c.req.header('x-user-id')
+
+    if (c.req.header('content-type')?.includes('application/json')) {
+        try {
+            const body = await c.req.json()
+            rawUserId = body.userId || rawUserId
+        } catch {
+            // Ignore parse errors
+        }
+    }
+
+    const user = await resolveUser(rawUserId)
+    if (!user) {
+        return c.json({ error: `User '${rawUserId}' not found in database.` }, 404)
+    }
+
+    const deletedCount = await clearAllUserMemory(user.id)
+
+    return c.json({
+        success: true,
+        user: { id: user.id, name: user.name },
+        deletedCount,
+        message: `ล้างความจำทั้งหมดของ '${user.name}' สำเร็จ (${deletedCount} รายการ)`,
+    })
+})
+
