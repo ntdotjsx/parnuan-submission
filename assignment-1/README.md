@@ -1,10 +1,30 @@
-# Assignment 1 — Text → Transaction Flow (Parnuan Take-Home)
+# Assignment 1 — Text -> Transaction Flow (Parnuan Take-Home)
 
 ระบบแปลงข้อความรายจ่ายภาษาไทย (Free-form Text) ให้ออกมาเป็นรายการธุรกรรมการเงินที่มีโครงสร้าง (Structured Transactions) พร้อมหน้าจอตรวจสอบ แก้ไข และยืนยันข้อมูลก่อนบันทึกจริง
 
 ---
 
-## Tech Stack & เหตุผลในการเลือกใช้
+## สารบัญ (Table of Contents)
+
+- [Tech Stack และเหตุผลในการเลือกใช้](#tech-stack-และเหตุผลในการเลือกใช้)
+- [1. Reverse-Engineered Behavior (พฤติกรรมที่อนุมานจากโจทย์)](#1-reverse-engineered-behavior-พฤติกรรมที่อนุมานจากโจทย์)
+- [2. Assumptions (สมมติฐานที่ตั้งไว้)](#2-assumptions-สมมติฐานที่ตั้งไว้)
+- [3. Technical Design (การออกแบบระบบ)](#3-technical-design-การออกแบบระบบ)
+  - [3.1 Pipeline Architecture (แผนภาพการประมวลผล)](#31-pipeline-architecture-แผนภาพการประมวลผล)
+  - [3.2 User Interaction Flow (ลำดับการทำงานของระบบ)](#32-user-interaction-flow-ลำดับการทำงานของระบบ)
+- [4. Parsing Strategy (กลยุทธ์การตีความข้อความ)](#4-parsing-strategy-กลยุทธ์การตีความข้อความ)
+- [5. Data Model (โครงสร้างข้อมูล)](#5-data-model-โครงสร้างข้อมูล)
+- [6. Trade-offs (การชั่งน้ำหนักและการตัดสินใจ)](#6-trade-offs-การชั่งน้ำหนักและการตัดสินใจ)
+- [7. Required Demo Cases (กรณีทดสอบหลัก)](#7-required-demo-cases-กรณีทดสอบหลัก)
+- [8. Edge Cases Considered (กรณีขอบเขตที่คำนึงถึง)](#8-edge-cases-considered-กรณีขอบเขตที่คำนึงถึง)
+- [9. Known Limitations (ข้อจำกัดและกรณีที่อาจผิดพลาด)](#9-known-limitations-ข้อจำกัดและกรณีที่อาจผิดพลาด)
+- [10. What I Would Improve Next (สิ่งที่อยากต่อยอดหากมีเวลาเพิ่ม)](#10-what-i-would-improve-next-สิ่งที่อยากต่อยอดหากมีเวลาเพิ่ม)
+- [11. Setup & Running Instructions](#11-setup--running-instructions)
+- [12. Time Spent (เวลาที่ใช้พัฒนา)](#12-time-spent-เวลาที่ใช้พัฒนา)
+
+---
+
+## Tech Stack และเหตุผลในการเลือกใช้
 
 เพื่อให้งานส่งมอบได้ตรงจุด โฟกัสที่ **Core Flow** ของระบบ ไม่บานปลาย และ **ไม่ Over-engineering** จึงเลือกใช้ Stack ที่เรียบง่ายแต่ทรงพลัง:
 
@@ -20,7 +40,7 @@
 
 จากการวิเคราะห์โจทย์และ Product Context ของ Parnuan สรุปพฤติกรรมหลักของระบบได้ดังนี้:
 
-1. **One Message → Multiple Transactions:** ผู้ใช้ไม่ได้ส่งแค่รายการเดียวเสมอไป มักพิมพ์หลายรายการในข้อความเดียว เช่น มีคำเชื่อม *"และ"*, *"แล้วก็"* หรือพิมพ์เว้นวรรคต่อเนื่อง
+1. **One Message -> Multiple Transactions:** ผู้ใช้ไม่ได้ส่งแค่รายการเดียวเสมอไป มักพิมพ์หลายรายการในข้อความเดียว เช่น มีคำเชื่อม *"และ"*, *"แล้วก็"* หรือพิมพ์เว้นวรรคต่อเนื่อง
 2. **Implicit / Explicit Date & Time Reference:** วันที่และเวลาอาจถูกระบุไว้ในเนื้อหา (เช่น *"เมื่อวาน"*, *"เมื่อวานตอน 5 โมงครึ่ง"*) ซึ่งระบบต้องดึงออกมาคำนวณเป็น Timestamp จริง และนำไปผูกกับทุก Transaction ในข้อความนั้น
 3. **Reviewable Before Confirmation (Human-in-the-loop):** ภาษาธรรมชาติของมนุษย์มีความกำกวมสูง ระบบต้องส่งผลลัพธ์ที่สกัดได้กลับมาให้ผู้ใช้ **ตรวจทาน (Inspect)** และ **แก้ไข (Edit)** ชื่อรายการ, จำนวนเงิน, หรือหมวดหมู่ ก่อนกดยืนยันบันทึกจริงเสมอ
 
@@ -37,9 +57,72 @@
 
 ## 3. Technical Design (การออกแบบระบบ)
 
-ระบบทำงานเป็น Pipeline 4 ขั้นตอนหลัก:
+### 3.1 Pipeline Architecture (แผนภาพการประมวลผล)
+
+ระบบทำงานเป็น Pipeline ผ่าน 3 โมดูลหลัก:
+
 ![techdev](tech.png)
 ![flowchart_no_s](eiei_flowchart.png)
+
+```mermaid
+flowchart TD
+    StartNode([เริ่มต้น]) --> RawInput[/รับข้อความ Free-form Text/]
+    RawInput --> ExtractDateStep[[1. สกัดวันและเวลา<br>extractDate]]
+
+    ExtractDateStep --> CheckDate{พบคำระบุเวลา<br>ในข้อความ?}
+    CheckDate -- ใช่ --> ResolveTime[คำนวณวันและเวลาตามบริบท<br>เมื่อวาน / เช้า / บ่าย / เย็น]
+    CheckDate -- ไม่ใช่ --> DefaultTime[ใช้วันและเวลาปัจจุบัน<br>Current Timestamp]
+
+    ResolveTime --> SplitStep[[2. แยกรายการธุรกรรม<br>splitCandidates]]
+    DefaultTime --> SplitStep
+
+    SplitStep --> ForEachCandidate[วนลูปแต่ละ Candidate]
+    ForEachCandidate --> ParseStep[[3. ตีความและจัดหมวดหมู่<br>parseCandidate]]
+
+    subgraph CoreParser [Parsing and Classification Subsystem]
+        ParseStep --> ExtractFields[สกัด Description และ Amount]
+        ExtractFields --> ValidAmount{จำนวนเงินถูกต้อง<br>Amount > 0?}
+        ValidAmount -- ไม่ถูกต้อง --> DiscardCandidate[ตัดทิ้ง<br>Invalid Candidate]
+        ValidAmount -- ถูกต้อง --> MatchCategory[จับคู่หมวดหมู่จาก Keyword<br>findCategory]
+        MatchCategory --> ScoreConfidence[คำนวณ Confidence Score<br>Category 70% + Date 30%]
+        ScoreConfidence --> BuildTx[สร้าง Structured Transaction]
+    end
+
+    BuildTx --> CheckRoute{ช่องทางส่งผลลัพธ์<br>Target Destination?}
+    DiscardCandidate --> CheckRoute
+
+    CheckRoute -- API Request --> ApiOutput[/คืนค่า JSON Response<br>POST /parse/]
+    CheckRoute -- Web UI Form --> UiRender[/แสดงผลหน้า Review Table UI<br>POST /ui/parse/]
+
+    UiRender --> UserAction[\ผู้ใช้ตรวจสอบและแก้ไขข้อมูล/]
+    UserAction --> UserConfirm{ยืนยันรายการ<br>Confirm?}
+    UserConfirm -- ปรับปรุงข้อมูล --> UserAction
+    UserConfirm -- กดยืนยัน --> SuccessOutput[/บันทึกสำเร็จและแสดงผลลัพธ์<br>POST /ui/confirm/]
+
+    ApiOutput --> EndNode([สิ้นสุด])
+    SuccessOutput --> EndNode
+```
+
+### 3.2 User Interaction Flow (ลำดับการทำงานของระบบ)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as ผู้ใช้งาน
+    participant UI as Web UI (Eta + HTMX)
+    participant Server as Hono Web Server
+    participant Parser as Parser Engine
+
+    User->>UI: 1. พิมพ์ข้อความรายจ่าย (Free-form Text)
+    UI->>Server: 2. POST /ui/parse (Form Data)
+    Server->>Parser: 3. parseTransactions(text)
+    Parser-->>Server: 4. Array<Transaction> (Parsed + Confidence)
+    Server-->>UI: 5. Render HTML Review Form (List View)
+    UI-->>User: 6. แสดงรายการให้ตรวจสอบ & แก้ไข (Edit/Inspect)
+    User->>UI: 7. ปรับปรุงข้อมูล (ถ้ามี) แล้วกด Confirm
+    UI->>Server: 8. POST /ui/confirm
+    Server-->>UI: 9. Render Confirmed Summary View
+```
 
 ---
 
@@ -78,8 +161,16 @@ export type Transaction = {
 ---
 
 ## 6. Trade-offs (การชั่งน้ำหนักและการตัดสินใจ)
+
 https://app.notion.com/p/Trade-offs-3cbd5ca94d8280538e62d655cbce98e7?source=copy_link
+
 ![alt text](image.png)
+
+| ทางเลือก | ข้อดี | ข้อแลกเปลี่ยน / เหตุผลที่เลือก |
+|---|---|---|
+| **Rule-based / Regex** *(เลือกใช้วิธีนี้)* | - รวดเร็วระดับ Sub-millisecond<br>- ต้นทุนค่าใช้จ่าย $0<br>- ทำงาน Offline 100%<br>- มีพฤติกรรมคงที่ (Deterministic) ทดสอบง่าย | ยืดหยุ่นน้อยกว่า LLM สำหรับประโยคที่มีโครงสร้างซับซ้อนมาก แต่เพียงพอและแม่นยำมากสำหรับขอบเขตงาน Proof of Concept 1–3 ชั่วโมง |
+| **LLM Approach** | - เข้าใจภาษากำกวมและบริบทได้ดีมาก | มี Latency สูงกว่า, มีค่าใช้จ่ายต่อ Token, และอาจเกิด Hallucination ในเรื่องตัวเลข |
+| **Lightweight SSR (Hono + HTMX)** *(เลือกใช้วิธีนี้)* | - พัฒนาได้ไว ไม่ต้องเซ็ตอัป React Build Pipeline<br>- โค้ดกระชับ คลีน โฟกัสที่ Core Flow | ไม่ได้มี Rich Client-Side State Management แต่ตอบโจทย์การ Review & Confirm ได้อย่างครบถ้วน |
 
 ---
 
@@ -89,7 +180,7 @@ https://app.notion.com/p/Trade-offs-3cbd5ca94d8280538e62d655cbce98e7?source=copy
 
 ### 1. Single Transaction
 - **Input:** `ข้าวมันไก่ 50`
-- **Output:** 1 รายการ (`ข้าวมันไก่`, ฿50.00, หมวดหมู่อาหาร 🍔)
+- **Output:** 1 รายการ (`ข้าวมันไก่`, ฿50.00, หมวดหมู่อาหาร)
 
 ### 2. Multiple Transactions
 - **Input:** `ข้าวมันไก่ 50 น้ำเปล่า 7 แล้วก็ช้อปปิ้ง 500`
